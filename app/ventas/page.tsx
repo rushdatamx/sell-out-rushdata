@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { TabGroup, TabList, Tab, TabPanels, TabPanel, Title, Text, Badge, Card as TremorCard } from "@tremor/react"
-import { Card as ShadcnCard, CardContent } from "@/components/ui/card"
+import { Card as ShadcnCard, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
@@ -51,12 +53,29 @@ import {
 
 const TENANT_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
 
+// Colores RushData
 const COLORS = {
-  ventaPerdida: "#ef4444",
-  ventas: "#10b981",
-  inventario: "#3b82f6",
-  margen: "#8b5cf6",
+  ventaPerdida: "hsl(220, 9%, 30%)",     // Gris oscuro elegante
+  ventas: "hsl(217, 91%, 50%)",          // Azul RushData principal
+  inventario: "hsl(217, 91%, 70%)",      // Azul RushData claro
+  margen: "hsl(217, 91%, 60%)",          // Azul RushData medio
 }
+
+// Chart config para gráfica principal de desempeño
+const performanceChartConfig = {
+  ventas: {
+    label: "Ventas",
+    color: "hsl(217, 91%, 50%)",
+  },
+  ventaPerdida: {
+    label: "Venta Perdida",
+    color: "hsl(220, 9%, 30%)",
+  },
+  inventario: {
+    label: "Inventario",
+    color: "hsl(217, 91%, 70%)",
+  },
+} satisfies ChartConfig
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("es-MX", {
@@ -130,7 +149,7 @@ function SparklineKPICard({
 }: SparklineKPICardProps) {
   const chartData = trend ? generateSparklineData(trend.actualChange ?? trend.value) : generateSparklineData(0)
   const isPositive = trend ? trend.isPositive : true
-  const actualChange = trend?.actualChange ?? (trend?.isPositive ? trend?.value : -trend?.value)
+  const actualChange = trend?.actualChange ?? (trend?.isPositive ? (trend?.value ?? 0) : -(trend?.value ?? 0))
 
   return (
     <motion.div
@@ -251,7 +270,7 @@ const CustomMainTooltip = ({ active, payload, label }: any) => {
 
 export default function VentasPage() {
   const [dateRange] = useState({ start: "2024-01-01", end: "2025-12-31" })
-  const [selectedTab, setSelectedTab] = useState(0)
+  const [selectedTab, setSelectedTab] = useState("perdidas")
 
   // Fetch all data
   const { data: kpis, isLoading: loadingKPIs } = useVentasKPIs(TENANT_ID, dateRange.start, dateRange.end)
@@ -351,7 +370,8 @@ export default function VentasPage() {
             value={formatCurrency(kpis?.total_ventas_perdidas || 0)}
             trend={{
               value: Math.abs(kpis?.cambio_perdidas_pct || 0),
-              isPositive: (kpis?.cambio_perdidas_pct || 0) < 0
+              isPositive: (kpis?.cambio_perdidas_pct || 0) < 0,
+              actualChange: kpis?.cambio_perdidas_pct || 0
             }}
             subtitle="vs período anterior"
             loading={loadingKPIs}
@@ -363,7 +383,8 @@ export default function VentasPage() {
             value={formatCurrency(kpis?.total_ventas || 0)}
             trend={{
               value: Math.abs(kpis?.cambio_ventas_pct || 0),
-              isPositive: (kpis?.cambio_ventas_pct || 0) >= 0
+              isPositive: (kpis?.cambio_ventas_pct || 0) >= 0,
+              actualChange: kpis?.cambio_ventas_pct || 0
             }}
             subtitle="vs período anterior"
             loading={loadingKPIs}
@@ -375,7 +396,8 @@ export default function VentasPage() {
             value={formatPercent(kpis?.tasa_cumplimiento_promedio || 0)}
             trend={{
               value: Math.abs(kpis?.cambio_cumplimiento_pct || 0),
-              isPositive: (kpis?.cambio_cumplimiento_pct || 0) >= 0
+              isPositive: (kpis?.cambio_cumplimiento_pct || 0) >= 0,
+              actualChange: kpis?.cambio_cumplimiento_pct || 0
             }}
             subtitle="vs período anterior"
             loading={loadingKPIs}
@@ -392,589 +414,774 @@ export default function VentasPage() {
         </div>
 
         {/* Gráfica Principal - Últimos 12 Meses */}
-        <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
-          <Title className="!text-xl !font-bold !text-gray-900 !mb-2">
-            Desempeño de Ventas - Últimos 12 Meses
-          </Title>
-          <Text className="!text-sm !text-gray-500 !mb-6">
-            Comparativa de ventas totales, ventas perdidas e inventario
-          </Text>
-          <ResponsiveContainer width="100%" height={350}>
-            <ComposedChart data={mainChartData}>
-              <defs>
-                <linearGradient id="colorInventario" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={COLORS.inventario} stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor={COLORS.inventario} stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-              <XAxis
-                dataKey="mes"
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                tickLine={false}
-                axisLine={{ stroke: "#e5e7eb" }}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                tickLine={false}
-                axisLine={{ stroke: "#e5e7eb" }}
-                tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
-              />
-              <Tooltip content={<CustomMainTooltip />} />
-              <Legend
-                wrapperStyle={{ paddingTop: "20px" }}
-                iconType="circle"
-              />
-              {/* Inventario - Area (shaded) */}
-              <Area
-                type="monotone"
-                dataKey="Inventario"
-                stroke={COLORS.inventario}
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorInventario)"
-                yAxisId="right"
-              />
-              {/* Venta Perdida - Bar */}
-              <Bar
-                dataKey="Venta Perdida"
-                fill={COLORS.ventaPerdida}
-                radius={[4, 4, 0, 0]}
-                maxBarSize={40}
-              />
-              {/* Ventas - Line */}
-              <Line
-                type="monotone"
-                dataKey="Ventas"
-                stroke={COLORS.ventas}
-                strokeWidth={3}
-                dot={{ fill: COLORS.ventas, r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                tickLine={false}
-                axisLine={{ stroke: "#e5e7eb" }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </TremorCard>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <ShadcnCard className="border border-border/40 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-semibold text-foreground">
+                Desempeño de Ventas
+              </CardTitle>
+              <CardDescription>
+                Comparativa de los últimos 12 meses: ventas totales, pérdidas e inventario
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {/* Leyenda personalizada estilo Notion */}
+              <div className="flex flex-wrap gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.ventas }} />
+                  <span className="text-xs text-muted-foreground">Ventas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.ventaPerdida }} />
+                  <span className="text-xs text-muted-foreground">Venta Perdida</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-sm opacity-50" style={{ backgroundColor: COLORS.inventario }} />
+                  <span className="text-xs text-muted-foreground">Inventario (unidades)</span>
+                </div>
+              </div>
+
+              <ChartContainer config={performanceChartConfig} className="h-[350px] w-full">
+                <ComposedChart data={mainChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorInventario" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={COLORS.inventario} stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor={COLORS.inventario} stopOpacity={0.05}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    vertical={false}
+                    opacity={0.5}
+                  />
+                  <XAxis
+                    dataKey="mes"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                            <p className="font-medium text-sm text-foreground mb-2">{label}</p>
+                            {payload.map((entry: any, index: number) => (
+                              <div key={index} className="flex items-center gap-2 text-sm">
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: entry.color }}
+                                />
+                                <span className="text-muted-foreground">{entry.name}:</span>
+                                <span className="font-medium text-foreground">
+                                  {entry.name === "Inventario"
+                                    ? `${formatNumber(entry.value)} unidades`
+                                    : formatCurrency(entry.value)
+                                  }
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      }
+                      return null
+                    }}
+                  />
+                  {/* Inventario - Area sombreada */}
+                  <Area
+                    type="monotone"
+                    dataKey="Inventario"
+                    stroke={COLORS.inventario}
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorInventario)"
+                    yAxisId="right"
+                  />
+                  {/* Venta Perdida - Barras */}
+                  <Bar
+                    dataKey="Venta Perdida"
+                    fill={COLORS.ventaPerdida}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={35}
+                    opacity={0.9}
+                  />
+                  {/* Ventas - Línea principal */}
+                  <Line
+                    type="monotone"
+                    dataKey="Ventas"
+                    stroke={COLORS.ventas}
+                    strokeWidth={2.5}
+                    dot={{ fill: COLORS.ventas, r: 3, strokeWidth: 0 }}
+                    activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                  />
+                </ComposedChart>
+              </ChartContainer>
+            </CardContent>
+          </ShadcnCard>
+        </motion.div>
 
         {/* Tabs con análisis detallado */}
-        <TabGroup index={selectedTab} onIndexChange={setSelectedTab}>
-          <TabList className="!bg-white !rounded-xl !p-1.5 !shadow-sm !border !border-gray-200">
-            <Tab className="!rounded-lg !px-6 !py-2.5 !text-sm !font-semibold data-[selected]:!bg-gradient-to-r data-[selected]:!from-[#007BFF] data-[selected]:!to-[#0056b3] data-[selected]:!text-white data-[selected]:!shadow-md !text-gray-600 hover:!bg-gray-100 hover:!text-gray-900 !transition-all">
-              Análisis de Pérdidas
-            </Tab>
-            <Tab className="!rounded-lg !px-6 !py-2.5 !text-sm !font-semibold data-[selected]:!bg-gradient-to-r data-[selected]:!from-[#007BFF] data-[selected]:!to-[#0056b3] data-[selected]:!text-white data-[selected]:!shadow-md !text-gray-600 hover:!bg-gray-100 hover:!text-gray-900 !transition-all">
-              Transacciones
-            </Tab>
-            <Tab className="!rounded-lg !px-6 !py-2.5 !text-sm !font-semibold data-[selected]:!bg-gradient-to-r data-[selected]:!from-[#007BFF] data-[selected]:!to-[#0056b3] data-[selected]:!text-white data-[selected]:!shadow-md !text-gray-600 hover:!bg-gray-100 hover:!text-gray-900 !transition-all">
-              Rentabilidad
-            </Tab>
-            <Tab className="!rounded-lg !px-6 !py-2.5 !text-sm !font-semibold data-[selected]:!bg-gradient-to-r data-[selected]:!from-[#007BFF] data-[selected]:!to-[#0056b3] data-[selected]:!text-white data-[selected]:!shadow-md !text-gray-600 hover:!bg-gray-100 hover:!text-gray-900 !transition-all">
-              Cumplimiento
-            </Tab>
-            <Tab className="!rounded-lg !px-6 !py-2.5 !text-sm !font-semibold data-[selected]:!bg-gradient-to-r data-[selected]:!from-[#007BFF] data-[selected]:!to-[#0056b3] data-[selected]:!text-white data-[selected]:!shadow-md !text-gray-600 hover:!bg-gray-100 hover:!text-gray-900 !transition-all">
-              Temporal
-            </Tab>
-            <Tab className="!rounded-lg !px-6 !py-2.5 !text-sm !font-semibold data-[selected]:!bg-gradient-to-r data-[selected]:!from-[#007BFF] data-[selected]:!to-[#0056b3] data-[selected]:!text-white data-[selected]:!shadow-md !text-gray-600 hover:!bg-gray-100 hover:!text-gray-900 !transition-all">
-              Descuentos
-            </Tab>
-          </TabList>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
+          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+            <TabsList className="w-full justify-start bg-muted/50 p-1 h-auto flex-wrap gap-1">
+              <TabsTrigger
+                value="perdidas"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm"
+              >
+                Análisis de Pérdidas
+              </TabsTrigger>
+              <TabsTrigger
+                value="transacciones"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm"
+              >
+                Transacciones
+              </TabsTrigger>
+              <TabsTrigger
+                value="rentabilidad"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm"
+              >
+                Rentabilidad
+              </TabsTrigger>
+              <TabsTrigger
+                value="cumplimiento"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm"
+              >
+                Cumplimiento
+              </TabsTrigger>
+              <TabsTrigger
+                value="temporal"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm"
+              >
+                Temporal
+              </TabsTrigger>
+              <TabsTrigger
+                value="descuentos"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm"
+              >
+                Descuentos
+              </TabsTrigger>
+            </TabsList>
 
-          <TabPanels className="mt-6">
             {/* Tab 1: Análisis de Pérdidas */}
-            <TabPanel>
+            <TabsContent value="perdidas" className="mt-6 space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Productos */}
-                <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
-                  <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                    Top 10 Productos con Pérdidas
-                  </Title>
-                  <div className="space-y-3">
+                <ShadcnCard className="border border-border/40 shadow-sm">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-base font-semibold text-foreground">
+                      Top 10 Productos con Pérdidas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
                     {perdidasProducto?.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-200"
+                        className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
                       >
-                        <div className="flex-1 min-w-0 pr-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white text-xs font-bold">
-                              {idx + 1}
-                            </div>
-                            <p className="text-sm font-bold text-gray-900 truncate">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">
                               {item.nombre}
                             </p>
-                          </div>
-                          <div className="flex items-center gap-3 ml-8">
-                            <Badge color="gray" className="!text-xs">
-                              {item.categoria}
-                            </Badge>
-                            <Text className="!text-xs !text-gray-500">
-                              Fill Rate: {formatPercent(item.tasa_cumplimiento_promedio)}
-                            </Text>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="secondary" className="text-xs font-normal">
+                                {item.categoria}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                Fill Rate: {formatPercent(item.tasa_cumplimiento_promedio)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-base font-bold text-red-600">
+                        <div className="text-right flex-shrink-0 pl-4">
+                          <p className="text-sm font-semibold text-foreground">
                             {formatCurrency(item.total_ventas_perdidas)}
                           </p>
-                          <Text className="!text-xs !text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {formatPercent(item.porcentaje_del_total)} del total
-                          </Text>
+                          </p>
                         </div>
                       </div>
                     ))}
-                  </div>
-                </TremorCard>
+                  </CardContent>
+                </ShadcnCard>
 
                 {/* Top Clientes */}
-                <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
-                  <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                    Top 10 Clientes Afectados
-                  </Title>
-                  <div className="space-y-3">
+                <ShadcnCard className="border border-border/40 shadow-sm">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-base font-semibold text-foreground">
+                      Top 10 Clientes Afectados
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
                     {perdidasCliente?.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-200"
+                        className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
                       >
-                        <div className="flex-1 min-w-0 pr-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white text-xs font-bold">
-                              {idx + 1}
-                            </div>
-                            <p className="text-sm font-bold text-gray-900 truncate">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">
                               {item.nombre}
                             </p>
-                          </div>
-                          <div className="flex items-center gap-3 ml-8">
-                            <Badge color="blue" className="!text-xs">
-                              {item.categoria}
-                            </Badge>
-                            <Text className="!text-xs !text-gray-500">
-                              {item.numero_ordenes_afectadas} órdenes
-                            </Text>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="outline" className="text-xs font-normal">
+                                {item.categoria}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {item.numero_ordenes_afectadas} órdenes
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-base font-bold text-red-600">
+                        <div className="text-right flex-shrink-0 pl-4">
+                          <p className="text-sm font-semibold text-foreground">
                             {formatCurrency(item.total_ventas_perdidas)}
                           </p>
-                          <Text className="!text-xs !text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {formatPercent(item.porcentaje_del_total)} del total
-                          </Text>
+                          </p>
                         </div>
                       </div>
                     ))}
-                  </div>
-                </TremorCard>
+                  </CardContent>
+                </ShadcnCard>
               </div>
 
               {/* Distribución por Categoría */}
-              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6 mt-6">
-                <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                  Distribución de Pérdidas por Categoría
-                </Title>
-                <ResponsiveContainer width="100%" height={400}>
-                  <PieChart>
-                    <Pie
-                      data={perdidasCategoria?.map(item => ({
-                        name: item.nombre,
-                        value: item.total_ventas_perdidas,
-                      })) || []}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({name, percent}) => `${name}: ${((percent ?? 0) * 100).toFixed(1)}%`}
-                      outerRadius={150}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {perdidasCategoria?.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['#ef4444', '#f97316', '#f59e0b', '#eab308'][index % 4]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: any) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </TremorCard>
-            </TabPanel>
+              <ShadcnCard className="border border-border/40 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Distribución de Pérdidas por Categoría
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={performanceChartConfig} className="h-[350px] w-full">
+                    <PieChart>
+                      <Pie
+                        data={perdidasCategoria?.map(item => ({
+                          name: item.nombre,
+                          value: item.total_ventas_perdidas,
+                        })) || []}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({name, percent}) => `${name}: ${((percent ?? 0) * 100).toFixed(1)}%`}
+                        outerRadius={130}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {perdidasCategoria?.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={[
+                              'hsl(217, 91%, 50%)',  // Azul RushData
+                              'hsl(217, 91%, 60%)',
+                              'hsl(217, 91%, 70%)',
+                              'hsl(220, 9%, 40%)'    // Gris
+                            ][index % 4]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                                <p className="font-medium text-sm text-foreground">{payload[0].name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {formatCurrency(payload[0].value as number)}
+                                </p>
+                              </div>
+                            )
+                          }
+                          return null
+                        }}
+                      />
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+              </ShadcnCard>
+            </TabsContent>
 
             {/* Tab 2: Transacciones */}
-            <TabPanel>
-              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
-                <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                  Órdenes con Pérdidas (Últimas 20)
-                </Title>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Orden</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cliente</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Producto</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Solicitado</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Entregado</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Perdido</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Monto Perdido</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Fill Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
-                      {ventasList?.map((venta, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-4 text-sm text-gray-900 font-medium">{venta.numero_orden}</td>
-                          <td className="px-4 py-4 text-sm text-gray-600">
-                            {new Date(venta.fecha).toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate font-medium">
-                            {venta.cliente_nombre}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
-                            {venta.producto_nombre}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-gray-900 text-right font-medium">
-                            {formatNumber(venta.cantidad_solicitada)}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-emerald-600 text-right font-medium">
-                            {formatNumber(venta.cantidad_entregada)}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-red-600 font-bold text-right">
-                            {formatNumber(venta.cantidad_perdida)}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-red-600 font-bold text-right">
-                            {formatCurrency(venta.monto_perdida)}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-right">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${
-                              venta.tasa_cumplimiento >= 95
-                                ? "bg-emerald-100 text-emerald-700"
-                                : venta.tasa_cumplimiento >= 75
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-red-100 text-red-700"
-                            }`}>
-                              {formatPercent(venta.tasa_cumplimiento)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </TremorCard>
-            </TabPanel>
+            <TabsContent value="transacciones" className="mt-6">
+              <ShadcnCard className="border border-border/40 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Órdenes con Pérdidas (Últimas 20)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-xs font-medium">Orden</TableHead>
+                          <TableHead className="text-xs font-medium">Fecha</TableHead>
+                          <TableHead className="text-xs font-medium">Cliente</TableHead>
+                          <TableHead className="text-xs font-medium">Producto</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Solicitado</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Entregado</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Perdido</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Monto</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Fill Rate</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {ventasList?.map((venta, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell className="text-sm font-medium">{venta.numero_orden}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(venta.fecha).toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}
+                            </TableCell>
+                            <TableCell className="text-sm font-medium max-w-[150px] truncate">
+                              {venta.cliente_nombre}
+                            </TableCell>
+                            <TableCell className="text-sm max-w-[150px] truncate">
+                              {venta.producto_nombre}
+                            </TableCell>
+                            <TableCell className="text-sm text-right font-medium">
+                              {formatNumber(venta.cantidad_solicitada)}
+                            </TableCell>
+                            <TableCell className="text-sm text-right text-emerald-600 font-medium">
+                              {formatNumber(venta.cantidad_entregada)}
+                            </TableCell>
+                            <TableCell className="text-sm text-right font-semibold">
+                              {formatNumber(venta.cantidad_perdida)}
+                            </TableCell>
+                            <TableCell className="text-sm text-right font-semibold">
+                              {formatCurrency(venta.monto_perdida)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Badge
+                                variant={
+                                  venta.tasa_cumplimiento >= 95
+                                    ? "default"
+                                    : venta.tasa_cumplimiento >= 75
+                                    ? "secondary"
+                                    : "destructive"
+                                }
+                                className="text-xs"
+                              >
+                                {formatPercent(venta.tasa_cumplimiento)}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </ShadcnCard>
+            </TabsContent>
 
             {/* Tab 3: Rentabilidad */}
-            <TabPanel>
-              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
-                <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                  Top 10 Productos por Margen Bruto
-                </Title>
-                <ResponsiveContainer width="100%" height={400}>
-                  <RechartsBarChart data={rentabilidadProducto?.map(item => ({
-                    nombre: item.nombre.substring(0, 20),
-                    "Margen": item.margen_bruto,
-                  })) || []}>
-                    <defs>
-                      <linearGradient id="colorMargen" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9}/>
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.6}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis
-                      dataKey="nombre"
-                      tick={{ fontSize: 10, fill: "#6b7280" }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={100}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "#6b7280" }}
-                      tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
-                    />
-                    <Tooltip
-                      formatter={(value: any) => formatCurrency(value)}
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Bar dataKey="Margen" fill="url(#colorMargen)" radius={[8, 8, 0, 0]} />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
+            <TabsContent value="rentabilidad" className="mt-6 space-y-6">
+              <ShadcnCard className="border border-border/40 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Top 10 Productos por Margen Bruto
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={performanceChartConfig} className="h-[350px] w-full">
+                    <RechartsBarChart data={rentabilidadProducto?.map(item => ({
+                      nombre: item.nombre.substring(0, 20),
+                      "Margen": item.margen_bruto,
+                    })) || []} margin={{ top: 10, right: 10, left: 0, bottom: 80 }}>
+                      <defs>
+                        <linearGradient id="colorMargen" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(217, 91%, 50%)" stopOpacity={0.9}/>
+                          <stop offset="95%" stopColor="hsl(217, 91%, 50%)" stopOpacity={0.6}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
+                      <XAxis
+                        dataKey="nombre"
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                        tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                                <p className="font-medium text-sm text-foreground">{label}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Margen: {formatCurrency(payload[0].value as number)}
+                                </p>
+                              </div>
+                            )
+                          }
+                          return null
+                        }}
+                      />
+                      <Bar dataKey="Margen" fill="url(#colorMargen)" radius={[4, 4, 0, 0]} />
+                    </RechartsBarChart>
+                  </ChartContainer>
 
-                <div className="mt-8 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Producto</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ventas</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Costo</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Margen</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Margen %</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Órdenes</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
-                      {rentabilidadProducto?.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-4 text-sm text-gray-900 font-medium">{item.nombre}</td>
-                          <td className="px-4 py-4 text-sm text-gray-900 text-right font-medium">
-                            {formatCurrency(item.total_ventas)}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-gray-600 text-right">
-                            {formatCurrency(item.costo_total)}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-emerald-600 font-bold text-right">
-                            {formatCurrency(item.margen_bruto)}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-right">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${
-                              item.margen_porcentaje >= 40
-                                ? "bg-emerald-100 text-emerald-700"
-                                : item.margen_porcentaje >= 20
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-red-100 text-red-700"
-                            }`}>
-                              {formatPercent(item.margen_porcentaje)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-sm text-gray-900 text-right">
-                            {formatNumber(item.numero_ordenes)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </TremorCard>
-            </TabPanel>
+                  <div className="mt-6 rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-xs font-medium">Producto</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Ventas</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Costo</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Margen</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Margen %</TableHead>
+                          <TableHead className="text-xs font-medium text-right">Órdenes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rentabilidadProducto?.map((item, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell className="text-sm font-medium">{item.nombre}</TableCell>
+                            <TableCell className="text-sm text-right font-medium">
+                              {formatCurrency(item.total_ventas)}
+                            </TableCell>
+                            <TableCell className="text-sm text-right text-muted-foreground">
+                              {formatCurrency(item.costo_total)}
+                            </TableCell>
+                            <TableCell className="text-sm text-right font-semibold text-emerald-600">
+                              {formatCurrency(item.margen_bruto)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Badge
+                                variant={
+                                  item.margen_porcentaje >= 40
+                                    ? "default"
+                                    : item.margen_porcentaje >= 20
+                                    ? "secondary"
+                                    : "destructive"
+                                }
+                                className="text-xs"
+                              >
+                                {formatPercent(item.margen_porcentaje)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-right">
+                              {formatNumber(item.numero_ordenes)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </ShadcnCard>
+            </TabsContent>
 
             {/* Tab 4: Cumplimiento */}
-            <TabPanel>
-              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
-                <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                  Distribución de Fill Rate
-                </Title>
-                <ResponsiveContainer width="100%" height={350}>
-                  <RechartsBarChart data={cumplimientoResumen?.map(item => ({
-                    rango: item.nombre,
-                    "Órdenes": item.total_ordenes,
-                  })) || []}>
-                    <defs>
-                      <linearGradient id="colorOrdenes" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.6}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis
-                      dataKey="rango"
-                      tick={{ fontSize: 12, fill: "#6b7280" }}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "#6b7280" }}
-                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
-                    />
-                    <Tooltip
-                      formatter={(value: any) => formatNumber(value)}
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Bar dataKey="Órdenes" fill="url(#colorOrdenes)" radius={[8, 8, 0, 0]} />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </TremorCard>
+            <TabsContent value="cumplimiento" className="mt-6 space-y-6">
+              <ShadcnCard className="border border-border/40 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Distribución de Fill Rate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={performanceChartConfig} className="h-[300px] w-full">
+                    <RechartsBarChart data={cumplimientoResumen?.map(item => ({
+                      rango: item.nombre,
+                      "Órdenes": item.total_ordenes,
+                    })) || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorOrdenes" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(217, 91%, 50%)" stopOpacity={0.9}/>
+                          <stop offset="95%" stopColor="hsl(217, 91%, 50%)" stopOpacity={0.6}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
+                      <XAxis
+                        dataKey="rango"
+                        tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                        tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                                <p className="font-medium text-sm text-foreground">{label}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Órdenes: {formatNumber(payload[0].value as number)}
+                                </p>
+                              </div>
+                            )
+                          }
+                          return null
+                        }}
+                      />
+                      <Bar dataKey="Órdenes" fill="url(#colorOrdenes)" radius={[4, 4, 0, 0]} />
+                    </RechartsBarChart>
+                  </ChartContainer>
+                </CardContent>
+              </ShadcnCard>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {cumplimientoResumen?.map((item, idx) => (
-                  <TremorCard key={idx} className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all !rounded-2xl !p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <Text className="!text-sm !text-gray-500 !mb-1">Fill Rate</Text>
-                        <Title className="!text-2xl !font-bold !text-gray-900">
-                          {item.nombre}
-                        </Title>
-                      </div>
-                      <div className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-lg ${
-                        item.nombre === "100%"
-                          ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
-                          : item.nombre.includes("90")
-                          ? "bg-gradient-to-br from-blue-500 to-blue-600"
-                          : item.nombre.includes("75")
-                          ? "bg-gradient-to-br from-yellow-500 to-yellow-600"
-                          : "bg-gradient-to-br from-red-500 to-red-600"
-                      }`}>
-                        <ShoppingCart className="h-6 w-6 text-white" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <Text className="!text-xs !text-gray-500">Órdenes</Text>
-                        <Text className="!text-sm !font-bold !text-gray-900">
-                          {formatNumber(item.total_ordenes)}
-                        </Text>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <Text className="!text-xs !text-gray-500">Unidades</Text>
-                        <Text className="!text-sm !font-semibold !text-gray-700">
-                          {formatNumber(item.unidades_entregadas)}
-                        </Text>
-                      </div>
-                      <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                        <Text className="!text-xs !text-gray-500">Del total</Text>
-                        <Text className="!text-sm !font-bold !text-blue-600">
-                          {formatPercent((item.total_ordenes / (kpis?.numero_ordenes || 1)) * 100)}
-                        </Text>
-                      </div>
-                    </div>
-                  </TremorCard>
-                ))}
-              </div>
-            </TabPanel>
-
-            {/* Tab 5: Temporal */}
-            <TabPanel>
-              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6 mb-6">
-                <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                  Ventas por Día de la Semana
-                </Title>
-                <ResponsiveContainer width="100%" height={350}>
-                  <RechartsBarChart data={temporalDiaSemana?.map(item => ({
-                    dia: item.periodo,
-                    "Ventas": item.total_ventas,
-                  })) || []}>
-                    <defs>
-                      <linearGradient id="colorVentasDia" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.9}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.6}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis dataKey="dia" tick={{ fontSize: 11, fill: "#6b7280" }} />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "#6b7280" }}
-                      tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
-                    />
-                    <Tooltip
-                      formatter={(value: any) => formatCurrency(value)}
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Bar dataKey="Ventas" fill="url(#colorVentasDia)" radius={[8, 8, 0, 0]} />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </TremorCard>
-
-              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
-                <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                  Fill Rate por Día de la Semana
-                </Title>
-                <ResponsiveContainer width="100%" height={350}>
-                  <LineChart data={temporalDiaSemana?.map(item => ({
-                    dia: item.periodo,
-                    "Fill Rate": item.tasa_cumplimiento,
-                  })) || []}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="dia" tick={{ fontSize: 11, fill: "#6b7280" }} />
-                    <YAxis
-                      domain={[0, 100]}
-                      tick={{ fontSize: 11, fill: "#6b7280" }}
-                      tickFormatter={(value) => `${value}%`}
-                    />
-                    <Tooltip
-                      formatter={(value: any) => `${value.toFixed(2)}%`}
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="Fill Rate"
-                      stroke="#3b82f6"
-                      strokeWidth={3}
-                      dot={{ fill: "#3b82f6", r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </TremorCard>
-            </TabPanel>
-
-            {/* Tab 6: Descuentos */}
-            <TabPanel>
-              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
-                <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
-                  Top 10 Clientes por Descuentos Aplicados
-                </Title>
-                <div className="space-y-3">
-                  {descuentosCliente?.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-5 bg-gradient-to-r from-orange-50 to-white rounded-xl border border-orange-100 hover:shadow-lg transition-all duration-200"
-                    >
-                      <div className="flex-1 min-w-0 pr-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
-                            {idx + 1}
-                          </div>
-                          <p className="text-base font-bold text-gray-900 truncate">
+                  <ShadcnCard key={idx} className="border border-border/40 shadow-sm hover:shadow-md transition-all">
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Fill Rate</p>
+                          <p className="text-xl font-bold text-foreground">
                             {item.nombre}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3 ml-9 flex-wrap">
-                          <Badge color="blue" className="!text-xs">
-                            {item.categoria}
-                          </Badge>
-                          <Text className="!text-xs !text-gray-600">
-                            {formatNumber(item.ordenes_con_descuento)} de {formatNumber(item.numero_ordenes)} órdenes
-                          </Text>
+                        <div className={cn(
+                          "h-10 w-10 rounded-lg flex items-center justify-center",
+                          item.nombre === "100%"
+                            ? "bg-emerald-100 text-emerald-600"
+                            : item.nombre.includes("90")
+                            ? "bg-blue-100 text-blue-600"
+                            : item.nombre.includes("75")
+                            ? "bg-amber-100 text-amber-600"
+                            : "bg-muted text-muted-foreground"
+                        )}>
+                          <ShoppingCart className="h-5 w-5" />
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0 space-y-2">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Órdenes</span>
+                          <span className="text-sm font-semibold text-foreground">
+                            {formatNumber(item.total_ordenes)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Unidades</span>
+                          <span className="text-sm font-medium text-foreground">
+                            {formatNumber(item.unidades_entregadas)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-border">
+                          <span className="text-xs text-muted-foreground">Del total</span>
+                          <span className="text-sm font-semibold text-primary">
+                            {formatPercent((item.total_ordenes / (kpis?.numero_ordenes || 1)) * 100)}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </ShadcnCard>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Tab 5: Temporal */}
+            <TabsContent value="temporal" className="mt-6 space-y-6">
+              <ShadcnCard className="border border-border/40 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Ventas por Día de la Semana
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={performanceChartConfig} className="h-[300px] w-full">
+                    <RechartsBarChart data={temporalDiaSemana?.map(item => ({
+                      dia: item.periodo,
+                      "Ventas": item.total_ventas,
+                    })) || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorVentasDia" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(217, 91%, 50%)" stopOpacity={0.9}/>
+                          <stop offset="95%" stopColor="hsl(217, 91%, 50%)" stopOpacity={0.6}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
+                      <XAxis
+                        dataKey="dia"
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                        tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                                <p className="font-medium text-sm text-foreground">{label}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Ventas: {formatCurrency(payload[0].value as number)}
+                                </p>
+                              </div>
+                            )
+                          }
+                          return null
+                        }}
+                      />
+                      <Bar dataKey="Ventas" fill="url(#colorVentasDia)" radius={[4, 4, 0, 0]} />
+                    </RechartsBarChart>
+                  </ChartContainer>
+                </CardContent>
+              </ShadcnCard>
+
+              <ShadcnCard className="border border-border/40 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Fill Rate por Día de la Semana
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={performanceChartConfig} className="h-[300px] w-full">
+                    <LineChart data={temporalDiaSemana?.map(item => ({
+                      dia: item.periodo,
+                      "Fill Rate": item.tasa_cumplimiento,
+                    })) || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                      <XAxis
+                        dataKey="dia"
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                        tickFormatter={(value) => `${value}%`}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                                <p className="font-medium text-sm text-foreground">{label}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Fill Rate: {(payload[0].value as number).toFixed(2)}%
+                                </p>
+                              </div>
+                            )
+                          }
+                          return null
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="Fill Rate"
+                        stroke="hsl(217, 91%, 50%)"
+                        strokeWidth={2.5}
+                        dot={{ fill: "hsl(217, 91%, 50%)", r: 3, strokeWidth: 0 }}
+                        activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                </CardContent>
+              </ShadcnCard>
+            </TabsContent>
+
+            {/* Tab 6: Descuentos */}
+            <TabsContent value="descuentos" className="mt-6">
+              <ShadcnCard className="border border-border/40 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Top 10 Clientes por Descuentos Aplicados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {descuentosCliente?.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                          {idx + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {item.nombre}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <Badge variant="outline" className="text-xs font-normal">
+                              {item.categoria}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatNumber(item.ordenes_con_descuento)} de {formatNumber(item.numero_ordenes)} órdenes
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 pl-4 space-y-1">
                         <div>
-                          <p className="text-lg font-bold text-orange-600">
+                          <p className="text-sm font-semibold text-foreground">
                             {formatCurrency(item.total_descuentos)}
                           </p>
-                          <Text className="!text-xs !text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {formatPercent(item.porcentaje_descuento_promedio)} descuento
-                          </Text>
+                          </p>
                         </div>
-                        <div className="flex items-center gap-2 text-xs pt-2 border-t border-gray-200">
-                          <span className="text-gray-500 font-medium">Margen:</span>
-                          <span className={`font-bold ${
-                            (item.impacto_margen || 0) < 0 ? "text-red-600" : "text-gray-700"
-                          }`}>
+                        <div className="flex items-center gap-1.5 text-xs pt-1 border-t border-border">
+                          <span className="text-muted-foreground">Margen:</span>
+                          <span className={cn(
+                            "font-medium",
+                            (item.impacto_margen || 0) < 0 ? "text-destructive" : "text-foreground"
+                          )}>
                             {item.margen_con_descuento?.toFixed(1) || "N/A"}%
                           </span>
-                          <span className="text-gray-400">vs</span>
-                          <span className="text-gray-700 font-semibold">
+                          <span className="text-muted-foreground">vs</span>
+                          <span className="font-medium text-foreground">
                             {item.margen_sin_descuento?.toFixed(1) || "N/A"}%
                           </span>
                           {item.impacto_margen !== null && (
-                            <span className={`ml-1 ${
-                              item.impacto_margen < 0 ? "text-red-600" : "text-emerald-600"
-                            } font-bold`}>
+                            <span className={cn(
+                              "font-semibold",
+                              item.impacto_margen < 0 ? "text-destructive" : "text-emerald-600"
+                            )}>
                               ({item.impacto_margen > 0 ? "+" : ""}{item.impacto_margen.toFixed(1)}%)
                             </span>
                           )}
@@ -982,11 +1189,11 @@ export default function VentasPage() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </TremorCard>
-            </TabPanel>
-          </TabPanels>
-        </TabGroup>
+                </CardContent>
+              </ShadcnCard>
+            </TabsContent>
+          </Tabs>
+        </motion.div>
       </div>
     </div>
   )
