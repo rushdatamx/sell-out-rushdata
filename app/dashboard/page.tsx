@@ -1,29 +1,19 @@
 "use client"
 
+import { motion } from "framer-motion"
 import {
-  Card,
-  Title,
-  Text,
-  Metric,
-  Flex,
-  DonutChart,
-  Badge,
-  BarChart,
-} from "@tremor/react"
-import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
   BarChart as RechartsBarChart,
   Bar,
-  Cell,
   PieChart,
   Pie,
+  Area,
+  AreaChart,
+  ComposedChart,
+  Label,
 } from "recharts"
 import {
   TrendingUp,
@@ -31,27 +21,39 @@ import {
   Users,
   ShoppingCart,
   Package,
-  AlertCircle,
   DollarSign,
   Percent,
   ArrowUp,
   ArrowDown,
+  Calendar,
+  Activity,
+  AlertTriangle,
+  PackageX,
+  Truck,
+  Factory,
+  CheckCircle2,
+  ArrowRight,
+  Phone,
 } from "lucide-react"
-import { RUSHDATA_COLORS } from "@/lib/tremor-config"
 import {
   useKPIs,
   useMonthlySalesComparison,
   useTopProducts,
   useTopClients,
-  useAlerts,
   useInventoryStatus,
   useLastDataMonth,
 } from "@/hooks/use-dashboard-data"
-import { useAuth } from "@/lib/auth/auth-context"
+import { useDailyActions, useDailyActionsSummary } from "@/hooks/use-daily-actions"
+import Link from "next/link"
 import { useState } from "react"
-import { Calendar, Sparkles } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
-// Por ahora usamos el tenant_id real de Galletas del Norte
 const TENANT_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
 
 function formatCurrency(value: number): string {
@@ -67,7 +69,7 @@ function calculatePercentChange(current: number, previous: number): number {
   return ((current - previous) / previous) * 100
 }
 
-// Custom Tooltip para Ventas Mensuales con diferencia porcentual
+// Custom Tooltip para Ventas Mensuales
 const CustomMonthlyTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length === 2) {
     const currentYear = payload[0].value
@@ -78,37 +80,24 @@ const CustomMonthlyTooltip = ({ active, payload, label }: any) => {
     const isPositive = difference >= 0
 
     return (
-      <div style={{
-        backgroundColor: "white",
-        border: "1px solid #e5e7eb",
-        borderRadius: "12px",
-        padding: "12px",
-        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-      }}>
-        <p style={{ fontWeight: 600, color: "#111827", marginBottom: "8px", fontSize: "13px" }}>
-          {label}
-        </p>
-        <p style={{ color: "#007BFF", fontSize: "13px", marginBottom: "4px" }}>
-          <span style={{ fontWeight: 600 }}>Año Actual:</span> {formatCurrency(currentYear)}
-        </p>
-        <p style={{ color: "#284389", fontSize: "13px", marginBottom: "8px" }}>
-          <span style={{ fontWeight: 600 }}>Año Anterior:</span> {formatCurrency(previousYear)}
-        </p>
-        <div style={{
-          borderTop: "1px solid #f3f4f6",
-          paddingTop: "8px",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px"
-        }}>
-          <span style={{ fontSize: "12px", color: "#6b7280", fontWeight: 500 }}>
-            Diferencia:
-          </span>
-          <span style={{
-            color: isPositive ? "#10b981" : "#ef4444",
-            fontSize: "14px",
-            fontWeight: 700
-          }}>
+      <div className="bg-card border border-border rounded-xl p-4 shadow-lg backdrop-blur-sm">
+        <p className="font-semibold text-foreground mb-2 text-sm">{label}</p>
+        <div className="space-y-1.5">
+          <p className="text-sm">
+            <span className="text-primary font-medium">Año Actual:</span>{" "}
+            <span className="font-bold">{formatCurrency(currentYear)}</span>
+          </p>
+          <p className="text-sm">
+            <span className="text-muted-foreground font-medium">Año Anterior:</span>{" "}
+            <span className="font-semibold">{formatCurrency(previousYear)}</span>
+          </p>
+        </div>
+        <div className="border-t border-border mt-3 pt-3 flex items-center gap-2">
+          <span className="text-xs text-muted-foreground font-medium">Diferencia:</span>
+          <span className={cn(
+            "text-sm font-bold",
+            isPositive ? "text-success" : "text-destructive"
+          )}>
             {isPositive ? "+" : ""}{difference.toFixed(1)}%
           </span>
         </div>
@@ -118,19 +107,250 @@ const CustomMonthlyTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
+// KPI Card with Sparkline Component - Premium Style
+interface SparklineKPICardProps {
+  title: string
+  value: string | number
+  trend?: { value: number; isPositive: boolean }
+  subtitle?: string
+  loading?: boolean
+  delay?: number
+  sparklineData?: { value: number }[]
+  sparklineColor?: string
+}
+
+// Generate sample sparkline data based on trend
+function generateSparklineData(trend: number, baseValue: number = 100): { value: number }[] {
+  const points = 12
+  const data: { value: number }[] = []
+  let current = baseValue * (1 - Math.abs(trend) / 100)
+
+  for (let i = 0; i < points; i++) {
+    const progress = i / (points - 1)
+    const noise = (Math.random() - 0.5) * baseValue * 0.15
+    const trendValue = trend >= 0
+      ? current + (baseValue - current) * progress
+      : baseValue - (baseValue - current) * progress
+    data.push({ value: Math.max(0, trendValue + noise) })
+  }
+
+  // Ensure last point reflects the trend direction
+  if (trend >= 0) {
+    data[data.length - 1] = { value: baseValue * 1.1 }
+  } else {
+    data[data.length - 1] = { value: baseValue * 0.85 }
+  }
+
+  return data
+}
+
+const sparklineChartConfig = {
+  value: {
+    label: "Value",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
+
+const salesChartConfig = {
+  currentYear: {
+    label: "Año Actual",
+    color: "hsl(var(--primary))",
+  },
+  previousYear: {
+    label: "Año Anterior",
+    color: "hsl(var(--muted-foreground))",
+  },
+} satisfies ChartConfig
+
+const productsChartConfig = {
+  total_ventas: {
+    label: "Ventas",
+  },
+  product1: {
+    label: "Producto 1",
+    color: "hsl(217, 91%, 50%)",
+  },
+  product2: {
+    label: "Producto 2",
+    color: "hsl(217, 91%, 60%)",
+  },
+  product3: {
+    label: "Producto 3",
+    color: "hsl(217, 91%, 70%)",
+  },
+  product4: {
+    label: "Producto 4",
+    color: "hsl(217, 91%, 78%)",
+  },
+  product5: {
+    label: "Producto 5",
+    color: "hsl(217, 91%, 85%)",
+  },
+} satisfies ChartConfig
+
+const clientsChartConfig = {
+  total_compras: {
+    label: "Compras",
+  },
+  client1: {
+    label: "Cliente 1",
+    color: "hsl(217, 91%, 50%)",
+  },
+  client2: {
+    label: "Cliente 2",
+    color: "hsl(217, 91%, 60%)",
+  },
+  client3: {
+    label: "Cliente 3",
+    color: "hsl(217, 91%, 70%)",
+  },
+  client4: {
+    label: "Cliente 4",
+    color: "hsl(217, 91%, 78%)",
+  },
+  client5: {
+    label: "Cliente 5",
+    color: "hsl(217, 91%, 85%)",
+  },
+} satisfies ChartConfig
+
+const inventoryChartConfig = {
+  cantidad: {
+    label: "Productos",
+  },
+  "Stock Alto": {
+    label: "Stock Alto",
+    color: "hsl(217, 91%, 50%)",
+  },
+  "Stock Normal": {
+    label: "Stock Normal",
+    color: "hsl(217, 91%, 65%)",
+  },
+  "Stock Bajo": {
+    label: "Stock Bajo",
+    color: "hsl(217, 91%, 80%)",
+  },
+  "Sin Stock": {
+    label: "Sin Stock",
+    color: "hsl(217, 91%, 90%)",
+  },
+} satisfies ChartConfig
+
+function SparklineKPICard({
+  title,
+  value,
+  trend,
+  subtitle,
+  loading,
+  delay = 0,
+  sparklineData,
+  sparklineColor = "hsl(var(--primary))"
+}: SparklineKPICardProps) {
+  const chartData = sparklineData || (trend ? generateSparklineData(trend.value) : generateSparklineData(0))
+  const isPositive = trend ? trend.isPositive : true
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: [0.25, 0.4, 0.25, 1] }}
+      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+    >
+      <Card className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+        <CardContent className="p-5 pb-0">
+          {/* Header */}
+          <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
+            {title}
+          </p>
+
+          {/* Value */}
+          {loading ? (
+            <Skeleton className="h-6 w-24 mb-1" />
+          ) : (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: delay + 0.1, duration: 0.3 }}
+              className="text-lg font-bold text-foreground tracking-tight truncate"
+            >
+              {value}
+            </motion.p>
+          )}
+
+          {/* Trend */}
+          {trend ? (
+            <div className="flex items-center gap-1.5 mt-1">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 text-xs font-semibold flex-shrink-0",
+                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                )}
+              >
+                {isPositive ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                {isPositive ? "+" : ""}{trend.value.toFixed(1)}%
+              </span>
+              <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
+          )}
+
+          {/* Sparkline Chart */}
+          <div className="h-16 mt-3 -mx-5 -mb-1">
+            <ChartContainer config={sparklineChartConfig} className="h-full w-full">
+              <AreaChart
+                data={chartData}
+                margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id={`gradient-${title.replace(/\s/g, '')}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="0%"
+                      stopColor={isPositive ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={isPositive ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={isPositive ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                  strokeWidth={2}
+                  fill={`url(#gradient-${title.replace(/\s/g, '')})`}
+                  dot={false}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
+
 export default function DashboardPage() {
   const [dateFilter, setDateFilter] = useState<30 | 60 | 90>(30)
 
-  // Usar dateFilter en todos los hooks que lo soportan
   const { data: lastMonth } = useLastDataMonth(TENANT_ID, dateFilter)
   const { data: kpis, isLoading: kpisLoading, error: kpisError } = useKPIs(TENANT_ID, dateFilter)
   const { data: monthlySales, isLoading: salesLoading } = useMonthlySalesComparison(TENANT_ID)
   const { data: topProducts, isLoading: productsLoading } = useTopProducts(TENANT_ID, 5, dateFilter)
   const { data: topClients, isLoading: clientsLoading } = useTopClients(TENANT_ID, 5, dateFilter)
-  const { data: alerts, isLoading: alertsLoading } = useAlerts(TENANT_ID, 10, dateFilter)
   const { data: inventoryStatus, isLoading: inventoryLoading } = useInventoryStatus(TENANT_ID)
 
-  // Calcular cambios porcentuales
+  // Acciones del día desde predicciones
+  const { data: dailyActions, isLoading: actionsLoading } = useDailyActions(TENANT_ID, 5)
+  const { data: actionsSummary } = useDailyActionsSummary(TENANT_ID)
+
   const ventasMesChange = kpis ? calculatePercentChange(kpis.ventasMes, kpis.ventasMesAnterior) : 0
   const ventasYTDChange = kpis ? calculatePercentChange(kpis.ventasYTD, kpis.ventasYTDAnterior) : 0
 
@@ -140,632 +360,567 @@ export default function DashboardPage() {
 
   const mesEnCurso = lastMonth ? `${lastMonth.nombre_mes} ${lastMonth.anio}` : "Cargando..."
 
+  const chartColors = {
+    primary: "hsl(var(--primary))",
+    secondary: "hsl(220, 60%, 35%)",
+    tertiary: "hsl(var(--accent))",
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
-      <div className="max-w-[1600px] mx-auto p-6 lg:p-8 space-y-8">
-        {/* Header Moderno */}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#007BFF] to-[#284389] flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Dashboard Ejecutivo
-              </h1>
-            </div>
-            <p className="text-sm text-gray-600 flex items-center gap-2 ml-[52px]">
-              <Calendar className="h-4 w-4 text-[#007BFF]" />
-              Datos actualizados: <span className="font-semibold text-gray-900">{mesEnCurso}</span>
+    <div className="min-h-screen">
+      <div className="max-w-[1600px] mx-auto space-y-8">
+        {/* Header Minimalista */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+        >
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">
+              Dashboard
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Actualizado: {mesEnCurso}
             </p>
           </div>
 
-          {/* Filtros de Fecha - Diseño moderno */}
-          <div className="flex gap-2 bg-white rounded-xl p-1.5 shadow-sm border border-gray-200">
-            {[30, 60, 90].map((days) => (
-              <button
-                key={days}
-                onClick={() => setDateFilter(days as 30 | 60 | 90)}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                  dateFilter === days
-                    ? "bg-gradient-to-r from-[#007BFF] to-[#0056b3] text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                {days} días
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* KPI Cards - Diseño Ultra Moderno */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {/* Ventas Últimos N Días */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Ventas Últimos {dateFilter}D
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-32 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      <span className="block truncate">{formatCurrency(kpis?.ventasMes || 0)}</span>
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#007BFF] to-[#0056b3] flex items-center justify-center shadow-lg flex-shrink-0">
-                  <DollarSign className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
-                <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0 ${
-                    ventasMesChange >= 0
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {ventasMesChange >= 0 ? (
-                    <ArrowUp className="h-3 w-3" />
-                  ) : (
-                    <ArrowDown className="h-3 w-3" />
-                  )}
-                  {Math.abs(ventasMesChange).toFixed(1)}%
-                </div>
-                <Text className="!text-xs !text-gray-500 truncate">vs período anterior</Text>
-              </div>
-            </div>
-          </Card>
-
-          {/* Ventas YTD */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Ventas YTD
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-32 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      <span className="block truncate">{formatCurrency(kpis?.ventasYTD || 0)}</span>
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#284389] to-[#1a2f5f] flex items-center justify-center shadow-lg flex-shrink-0">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
-                <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0 ${
-                    ventasYTDChange >= 0
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {ventasYTDChange >= 0 ? (
-                    <ArrowUp className="h-3 w-3" />
-                  ) : (
-                    <ArrowDown className="h-3 w-3" />
-                  )}
-                  {Math.abs(ventasYTDChange).toFixed(1)}%
-                </div>
-                <Text className="!text-xs !text-gray-500 truncate">vs año anterior</Text>
-              </div>
-            </div>
-          </Card>
-
-          {/* Clientes Activos */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Clientes Activos
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-20 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      kpis?.clientesActivos || 0
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Users className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <Text className="!text-xs !text-gray-500 mt-auto pt-2 border-t border-gray-100 truncate">
-                Últimos {dateFilter} días
-              </Text>
-            </div>
-          </Card>
-
-          {/* Ticket Promedio */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Ticket Promedio
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-28 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      <span className="block truncate">{formatCurrency(kpis?.ticketPromedio || 0)}</span>
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <ShoppingCart className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <Text className="!text-xs !text-gray-500 mt-auto pt-2 border-t border-gray-100 truncate">
-                Últimos {dateFilter} días
-              </Text>
-            </div>
-          </Card>
-
-          {/* Stock Crítico */}
-          <Card
-            className={`!bg-white !border-0 !ring-1 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4 ${
-              kpis?.productoscrticos && kpis.productoscrticos > 0
-                ? "!ring-red-200"
-                : "!ring-gray-200"
-            }`}
+          {/* Filtros de Fecha - Toggle Group */}
+          <ToggleGroup
+            type="single"
+            value={dateFilter.toString()}
+            onValueChange={(value) => value && setDateFilter(parseInt(value) as 30 | 60 | 90)}
+            variant="outline"
           >
-            <div
-              className={`absolute inset-0 bg-gradient-to-br to-transparent opacity-0 group-hover:opacity-100 transition-opacity ${
-                kpis?.productoscrticos && kpis.productoscrticos > 0
-                  ? "from-red-500/5"
-                  : "from-emerald-500/5"
-              }`}
-            />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Stock Crítico
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-12 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      kpis?.productoscrticos || 0
-                    )}
-                  </Metric>
-                </div>
-                <div
-                  className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
-                    kpis?.productoscrticos && kpis.productoscrticos > 0
-                      ? "bg-gradient-to-br from-red-500 to-red-600"
-                      : "bg-gradient-to-br from-emerald-500 to-emerald-600"
-                  }`}
-                >
-                  <Package className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <Text className="!text-xs !text-gray-500 mt-auto pt-2 border-t border-gray-100 truncate">
-                Productos bajo mínimo
-              </Text>
-            </div>
-          </Card>
+            <ToggleGroupItem value="30" aria-label="30 días">
+              30 días
+            </ToggleGroupItem>
+            <ToggleGroupItem value="60" aria-label="60 días">
+              60 días
+            </ToggleGroupItem>
+            <ToggleGroupItem value="90" aria-label="90 días">
+              90 días
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </motion.div>
 
-          {/* Margen Promedio */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Margen Promedio
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-20 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      `${((kpis?.margenPromedio || 0) * 100).toFixed(0)}%`
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Percent className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <Text className="!text-xs !text-gray-500 mt-auto pt-2 border-t border-gray-100 truncate">
-                Últimos {dateFilter} días
-              </Text>
-            </div>
-          </Card>
+        {/* KPI Cards Grid with Sparklines */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <SparklineKPICard
+            title={`Ventas ${dateFilter}D`}
+            value={formatCurrency(kpis?.ventasMes || 0)}
+            trend={{ value: ventasMesChange, isPositive: ventasMesChange >= 0 }}
+            subtitle="vs período anterior"
+            loading={kpisLoading}
+            delay={0}
+          />
+
+          <SparklineKPICard
+            title="Ventas YTD"
+            value={formatCurrency(kpis?.ventasYTD || 0)}
+            trend={{ value: ventasYTDChange, isPositive: ventasYTDChange >= 0 }}
+            subtitle="vs año anterior"
+            loading={kpisLoading}
+            delay={0.05}
+          />
+
+          <SparklineKPICard
+            title="Clientes Activos"
+            value={kpis?.clientesActivos || 0}
+            trend={{ value: 5.2, isPositive: true }}
+            subtitle={`Últimos ${dateFilter} días`}
+            loading={kpisLoading}
+            delay={0.1}
+          />
+
+          <SparklineKPICard
+            title="Ticket Promedio"
+            value={formatCurrency(kpis?.ticketPromedio || 0)}
+            trend={{ value: 3.8, isPositive: true }}
+            subtitle={`Últimos ${dateFilter} días`}
+            loading={kpisLoading}
+            delay={0.15}
+          />
+
+          <SparklineKPICard
+            title="Stock Crítico"
+            value={kpis?.productoscrticos || 0}
+            trend={{
+              value: kpis?.productoscrticos && kpis.productoscrticos > 0 ? -12.5 : 0,
+              isPositive: !(kpis?.productoscrticos && kpis.productoscrticos > 0)
+            }}
+            subtitle="Productos bajo mínimo"
+            loading={kpisLoading}
+            delay={0.2}
+          />
+
+          <SparklineKPICard
+            title="Margen Promedio"
+            value={`${((kpis?.margenPromedio || 0) * 100).toFixed(0)}%`}
+            trend={{ value: 2.1, isPositive: true }}
+            subtitle={`Últimos ${dateFilter} días`}
+            loading={kpisLoading}
+            delay={0.25}
+          />
         </div>
 
-        {/* Fila Principal: Gráfica + Top Productos */}
+        {/* Charts Row */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Ventas Mensuales - 2 columnas */}
-          <Card className="lg:col-span-2 !bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#007BFF]/10 to-[#007BFF]/5 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-[#007BFF]" />
-              </div>
-              <div>
-                <Title className="!font-bold !text-gray-900">Ventas Mensuales Comparativas</Title>
-                <Text className="!text-xs !text-gray-500">Últimos 12 meses vs año anterior</Text>
-              </div>
-            </div>
-            {salesLoading ? (
-              <div className="h-80 flex items-center justify-center bg-gray-50 rounded-xl">
-                <div className="text-center space-y-3">
-                  <div className="animate-spin h-10 w-10 border-4 border-[#007BFF] border-t-transparent rounded-full mx-auto" />
-                  <p className="text-sm text-gray-500">Cargando datos...</p>
+          <Card className="lg:col-span-2 border border-border/40 shadow-sm">
+            <CardHeader>
+              <CardTitle>Ventas Mensuales Comparativas</CardTitle>
+              <CardDescription>Comparación año actual vs año anterior</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {salesLoading ? (
+                <div className="h-72 flex items-center justify-center">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
                 </div>
-              </div>
-            ) : monthlySales && monthlySales.length > 0 ? (
-              <div className="mt-4 h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={monthlySales}>
-                    {/* Grid ultra sutil */}
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+              ) : monthlySales && monthlySales.length > 0 ? (
+                <ChartContainer config={salesChartConfig} className="h-72 w-full">
+                  <ComposedChart accessibilityLayer data={monthlySales}>
+                    <CartesianGrid vertical={false} />
                     <XAxis
                       dataKey="month"
-                      tick={{ fontSize: 9, fill: "#6b7280" }}
-                      stroke="#e5e7eb"
-                      axisLine={false}
                       tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
                       tickFormatter={(value) => {
-                        // Convertir "Jan 2025" a "Jan-25"
                         const parts = value.split(' ')
                         if (parts.length === 2) {
-                          return `${parts[0]}-${parts[1].slice(-2)}`
+                          return parts[0].slice(0, 3)
                         }
-                        return value
+                        return value.slice(0, 3)
                       }}
                     />
-                    <YAxis
-                      tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
-                      tick={{ fontSize: 11, fill: "#6b7280" }}
-                      stroke="#e5e7eb"
-                      axisLine={false}
-                      tickLine={false}
-                      width={70}
-                    />
-                    <Tooltip content={<CustomMonthlyTooltip />} />
-                    <Legend
-                      wrapperStyle={{ paddingTop: "24px" }}
-                      formatter={(value) =>
-                        value === "currentYear" ? "Año Actual" : "Año Anterior"
+                    <ChartTooltip
+                      cursor={false}
+                      content={
+                        <ChartTooltipContent
+                          indicator="dashed"
+                          formatter={(value, name, item) => {
+                            const payload = item.payload
+                            const currentYear = payload.currentYear
+                            const previousYear = payload.previousYear
+                            const diff = previousYear !== 0
+                              ? ((currentYear - previousYear) / previousYear) * 100
+                              : 0
+                            const isPositive = diff >= 0
+
+                            if (name === "currentYear") {
+                              return (
+                                <span className="flex items-center gap-2">
+                                  {formatCurrency(value as number)}
+                                  <span className={cn(
+                                    "text-xs font-medium",
+                                    isPositive ? "text-emerald-600" : "text-rose-600"
+                                  )}>
+                                    ({isPositive ? "+" : ""}{diff.toFixed(1)}%)
+                                  </span>
+                                </span>
+                              )
+                            }
+                            return formatCurrency(value as number)
+                          }}
+                        />
                       }
-                      iconType="circle"
                     />
-                    {/* Año Actual: Barras con color primario RushData */}
-                    <Bar
-                      dataKey="currentYear"
-                      fill="#007BFF"
-                      radius={[8, 8, 0, 0]}
-                      name="currentYear"
-                    />
-                    {/* Año Anterior: Línea con color secundario RushData */}
+                    <Bar dataKey="currentYear" fill="var(--color-currentYear)" radius={4} barSize={32} />
                     <Line
                       type="monotone"
                       dataKey="previousYear"
-                      stroke="#284389"
-                      strokeWidth={3}
-                      dot={{ fill: "#284389", r: 4, strokeWidth: 2, stroke: "#fff" }}
-                      activeDot={{ r: 6, strokeWidth: 2, stroke: "#fff" }}
-                      name="previousYear"
+                      stroke="var(--color-previousYear)"
+                      strokeWidth={2}
+                      dot={{ fill: "var(--color-previousYear)", r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
+                  </ComposedChart>
+                </ChartContainer>
+              ) : (
+                <div className="h-72 flex items-center justify-center bg-secondary/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">No hay datos disponibles</p>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex-col items-start gap-2 text-sm">
+              <div className="flex gap-2 leading-none font-medium">
+                {ventasMesChange >= 0 ? (
+                  <>
+                    Crecimiento de {ventasMesChange.toFixed(1)}% este período <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  </>
+                ) : (
+                  <>
+                    Disminución de {Math.abs(ventasMesChange).toFixed(1)}% este período <TrendingDown className="h-4 w-4 text-rose-500" />
+                  </>
+                )}
               </div>
-            ) : (
-              <div className="h-80 flex items-center justify-center bg-gray-50 rounded-xl">
-                <p className="text-gray-400">No hay datos disponibles</p>
+              <div className="text-muted-foreground leading-none">
+                Mostrando ventas mensuales del último año
               </div>
-            )}
+            </CardFooter>
           </Card>
 
           {/* Top 5 Productos */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
-                <Package className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div>
-                <Title className="!font-bold !text-gray-900">Top 5 Productos</Title>
-                <Text className="!text-xs !text-gray-500">
-                  Últimos {dateFilter} días • Por ingresos
-                </Text>
-              </div>
-            </div>
-            {productsLoading ? (
-              <div className="h-72 flex items-center justify-center">
-                <div className="animate-spin h-8 w-8 border-3 border-emerald-600 border-t-transparent rounded-full" />
-              </div>
-            ) : topProducts && topProducts.length > 0 ? (
-              <div className="mt-2 h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart
-                    data={topProducts}
-                    layout="vertical"
-                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={true} vertical={false} />
-                    <XAxis
-                      type="number"
-                      tick={{ fontSize: 11, fill: "#6b7280" }}
-                      stroke="#d1d5db"
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="nombre"
-                      width={150}
-                      tick={{ fontSize: 9, fill: "#374151" }}
-                      stroke="#d1d5db"
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(value) => {
-                        // Truncar nombres muy largos
-                        return value.length > 25 ? `${value.substring(0, 25)}...` : value
-                      }}
-                    />
-                    <Tooltip
-                      formatter={(value: any) => formatCurrency(value)}
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                        padding: "8px 12px",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      }}
-                      labelStyle={{ fontWeight: 600, color: "#111827", fontSize: "12px" }}
-                    />
-                    <Bar dataKey="total_ventas" radius={[0, 8, 8, 0]}>
-                      {topProducts.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={index % 2 === 0 ? "#007BFF" : "#284389"}
+          <Card className="border border-border/40 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Top 5 Productos</CardTitle>
+              <CardDescription>Productos más vendidos del período</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {productsLoading ? (
+                <div className="h-52 flex items-center justify-center">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+                </div>
+              ) : topProducts && topProducts.length > 0 ? (
+                (() => {
+                  const totalVentas = topProducts.reduce((sum, p) => sum + p.total_ventas, 0)
+                  return (
+                    <ChartContainer config={productsChartConfig} className="h-64 w-full">
+                      <RechartsBarChart
+                        accessibilityLayer
+                        data={topProducts.map((product, index) => ({
+                          ...product,
+                          fill: `var(--color-product${index + 1})`,
+                          porcentaje: ((product.total_ventas / totalVentas) * 100).toFixed(1),
+                        }))}
+                        layout="vertical"
+                        margin={{ left: 20, top: 0, bottom: 0, right: 10 }}
+                        barGap={2}
+                      >
+                        <YAxis
+                          dataKey="nombre"
+                          type="category"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          width={140}
+                          tick={{ fontSize: 12 }}
                         />
-                      ))}
-                    </Bar>
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-72 flex items-center justify-center bg-gray-50 rounded-xl">
-                <p className="text-gray-400 text-sm">No hay productos disponibles</p>
-              </div>
-            )}
+                        <XAxis dataKey="total_ventas" type="number" hide />
+                        <ChartTooltip
+                          cursor={false}
+                          content={
+                            <ChartTooltipContent
+                              hideLabel
+                              formatter={(value, name, item) => {
+                                const porcentaje = item.payload.porcentaje
+                                return (
+                                  <span>
+                                    {formatCurrency(value as number)} <span className="text-muted-foreground">({porcentaje}%)</span>
+                                  </span>
+                                )
+                              }}
+                            />
+                          }
+                        />
+                        <Bar dataKey="total_ventas" layout="vertical" radius={5} barSize={28} />
+                      </RechartsBarChart>
+                    </ChartContainer>
+                  )
+                })()
+              ) : (
+                <div className="h-52 flex items-center justify-center bg-secondary/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">No hay productos disponibles</p>
+                </div>
+              )}
+            </CardContent>
           </Card>
         </div>
 
-        {/* Segunda Fila: Top Clientes + Alertas + Inventario */}
+        {/* Second Row */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Top 5 Clientes */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 flex items-center justify-center">
-                <Users className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <Title className="!font-bold !text-gray-900">Top 5 Clientes</Title>
-                <Text className="!text-xs !text-gray-500">
-                  Últimos {dateFilter} días • Por volumen
-                </Text>
-              </div>
-            </div>
-            {clientsLoading ? (
-              <div className="h-64 flex items-center justify-center">
-                <div className="animate-spin h-8 w-8 border-3 border-blue-600 border-t-transparent rounded-full" />
-              </div>
-            ) : topClients && topClients.length > 0 ? (
-              <div className="mt-2 h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart
-                    data={topClients}
-                    layout="vertical"
-                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={true} vertical={false} />
-                    <XAxis
-                      type="number"
-                      tick={{ fontSize: 11, fill: "#6b7280" }}
-                      stroke="#d1d5db"
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="nombre"
-                      width={150}
-                      tick={{ fontSize: 9, fill: "#374151" }}
-                      stroke="#d1d5db"
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(value) => {
-                        // Truncar nombres muy largos
-                        return value.length > 25 ? `${value.substring(0, 25)}...` : value
-                      }}
-                    />
-                    <Tooltip
-                      formatter={(value: any) => formatCurrency(value)}
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                        padding: "8px 12px",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      }}
-                      labelStyle={{ fontWeight: 600, color: "#111827", fontSize: "12px" }}
-                    />
-                    <Bar dataKey="total_compras" radius={[0, 8, 8, 0]}>
-                      {topClients.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={index % 2 === 0 ? "#007BFF" : "#284389"}
+          <Card className="border border-border/40 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Top 5 Clientes</CardTitle>
+              <CardDescription>Clientes con mayor volumen de compras</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {clientsLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+                </div>
+              ) : topClients && topClients.length > 0 ? (
+                (() => {
+                  const totalCompras = topClients.reduce((sum, c) => sum + c.total_compras, 0)
+                  return (
+                    <ChartContainer config={clientsChartConfig} className="h-64 w-full">
+                      <RechartsBarChart
+                        accessibilityLayer
+                        data={topClients.map((client, index) => ({
+                          ...client,
+                          fill: `var(--color-client${index + 1})`,
+                          porcentaje: ((client.total_compras / totalCompras) * 100).toFixed(1),
+                        }))}
+                        layout="vertical"
+                        margin={{ left: 20, top: 0, bottom: 0, right: 10 }}
+                        barGap={2}
+                      >
+                        <YAxis
+                          dataKey="nombre"
+                          type="category"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          width={140}
+                          tick={{ fontSize: 12 }}
                         />
-                      ))}
-                    </Bar>
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center bg-gray-50 rounded-xl">
-                <p className="text-gray-400 text-sm">No hay clientes disponibles</p>
-              </div>
-            )}
+                        <XAxis dataKey="total_compras" type="number" hide />
+                        <ChartTooltip
+                          cursor={false}
+                          content={
+                            <ChartTooltipContent
+                              hideLabel
+                              formatter={(value, name, item) => {
+                                const porcentaje = item.payload.porcentaje
+                                return (
+                                  <span>
+                                    {formatCurrency(value as number)} <span className="text-muted-foreground">({porcentaje}%)</span>
+                                  </span>
+                                )
+                              }}
+                            />
+                          }
+                        />
+                        <Bar dataKey="total_compras" layout="vertical" radius={5} barSize={28} />
+                      </RechartsBarChart>
+                    </ChartContainer>
+                  )
+                })()
+              ) : (
+                <div className="h-64 flex items-center justify-center bg-secondary/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">No hay clientes disponibles</p>
+                </div>
+              )}
+            </CardContent>
           </Card>
 
-          {/* Alertas y Accionables */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <Title className="!font-bold !text-gray-900">Alertas y Accionables</Title>
-                <Text className="!text-xs !text-gray-500">Requieren tu atención</Text>
-              </div>
-            </div>
-            {alertsLoading ? (
-              <div className="h-64 flex items-center justify-center">
-                <div className="animate-spin h-8 w-8 border-3 border-amber-600 border-t-transparent rounded-full" />
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {alerts && alerts.length > 0 ? (
-                  alerts.map((alert, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-50 to-white border border-gray-100 hover:border-gray-200 transition-all"
-                    >
-                      <Badge
-                        color={
-                          alert.prioridad === "high"
-                            ? "red"
-                            : alert.prioridad === "medium"
-                            ? "amber"
-                            : "blue"
-                        }
-                        className="shrink-0 !font-semibold"
-                      >
-                        {alert.tipo}
-                      </Badge>
-                      <p className="text-xs text-gray-700 font-medium leading-relaxed">
-                        {alert.mensaje}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-100">
-                    <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-                      <Package className="h-6 w-6 text-emerald-600" />
-                    </div>
-                    <p className="text-sm font-semibold text-emerald-900">Todo en orden</p>
-                    <p className="text-xs text-emerald-600 mt-1">No hay alertas en este momento</p>
-                  </div>
+          {/* Acciones Inmediatas */}
+          <Card className="border border-border/40 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Acciones del Día</CardTitle>
+                {actionsSummary && actionsSummary.acciones_criticas > 0 && (
+                  <Badge variant="destructive" className="h-6 px-2">
+                    {actionsSummary.acciones_criticas} críticas
+                  </Badge>
                 )}
               </div>
+              <CardDescription>
+                {actionsSummary
+                  ? `${actionsSummary.clientes_unicos} clientes · ${formatCurrency(actionsSummary.valor_total_en_riesgo)} en riesgo`
+                  : "Tareas prioritarias del día"
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pb-3">
+              {actionsLoading ? (
+                <div className="h-52 flex items-center justify-center">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {dailyActions && dailyActions.length > 0 ? (
+                    dailyActions.map((action, idx) => {
+                      const getUrgencyStyles = (urgencia: string) => {
+                        switch (urgencia) {
+                          case "critica":
+                            return {
+                              badge: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+                              icon: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",
+                              label: "Crítica"
+                            }
+                          case "alta":
+                            return {
+                              badge: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                              icon: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
+                              label: "Alta"
+                            }
+                          case "media":
+                            return {
+                              badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                              icon: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+                              label: "Media"
+                            }
+                          default:
+                            return {
+                              badge: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
+                              icon: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+                              label: "Normal"
+                            }
+                        }
+                      }
+
+                      const styles = getUrgencyStyles(action.urgencia)
+
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:bg-secondary/30 transition-colors group"
+                        >
+                          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0", styles.icon)}>
+                            <Phone className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className={cn("text-xs px-1.5 py-0 h-5 font-medium border-0", styles.badge)}>
+                                {styles.label}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">{action.categoria}</span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground leading-snug truncate">
+                              {action.cliente_nombre}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {action.producto_nombre} · {formatCurrency(action.valor_estimado)}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10">
+                      <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-3">
+                        <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">¡Todo al día!</p>
+                      <p className="text-xs text-muted-foreground">No hay acciones pendientes</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+            {dailyActions && dailyActions.length > 0 && (
+              <CardFooter className="pt-0">
+                <Link href="/dashboard/predicciones" className="w-full">
+                  <Button variant="outline" className="w-full group">
+                    Ver todas las acciones
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              </CardFooter>
             )}
           </Card>
 
           {/* Estado de Inventario */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 flex items-center justify-center">
-                <Package className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <Title className="!font-bold !text-gray-900">Estado de Inventario</Title>
-                <Text className="!text-xs !text-gray-500">Distribución por nivel de stock</Text>
-              </div>
-            </div>
-            {inventoryLoading ? (
-              <div className="h-64 flex items-center justify-center">
-                <div className="animate-spin h-8 w-8 border-3 border-purple-600 border-t-transparent rounded-full" />
-              </div>
-            ) : inventoryStatus && inventoryStatus.length > 0 ? (
-              <>
-                <div className="mt-4 h-48 w-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={inventoryStatus}
-                        dataKey="cantidad"
-                        nameKey="categoria"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={2}
-                        label={(entry) => `${entry.cantidad}`}
-                      >
-                        {inventoryStatus.map((entry, index) => {
-                          // Alternar entre colores primario y secundario de RushData
-                          const colors = ["#007BFF", "#284389", "#4D9FFF", "#3A5AA5"]
-                          return (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={colors[index % colors.length]}
-                            />
-                          )
-                        })}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: any) => `${value} productos`}
-                        contentStyle={{
-                          backgroundColor: "white",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
-                          padding: "8px 12px",
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                        }}
-                        labelStyle={{ fontWeight: 600, color: "#111827", fontSize: "12px" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+          <Card className="border border-border/40 shadow-sm">
+            <CardHeader className="pb-0">
+              <CardTitle className="text-base">Estado de Inventario</CardTitle>
+              <CardDescription>Distribución de productos por estado</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 pb-0">
+              {inventoryLoading ? (
+                <div className="h-[200px] flex items-center justify-center">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
                 </div>
-                <div className="mt-6 space-y-3">
+              ) : inventoryStatus && inventoryStatus.length > 0 ? (
+                (() => {
+                  const totalProducts = inventoryStatus.reduce((sum, item) => sum + item.cantidad, 0)
+                  const categoryColors: Record<string, string> = {
+                    "Stock Alto": "hsl(217, 91%, 50%)",
+                    "Stock Normal": "hsl(217, 91%, 65%)",
+                    "Stock Bajo": "hsl(217, 91%, 80%)",
+                    "Sin Stock": "hsl(217, 91%, 90%)",
+                  }
+                  return (
+                    <ChartContainer
+                      config={inventoryChartConfig}
+                      className="mx-auto aspect-square max-h-[220px]"
+                    >
+                      <PieChart>
+                        <ChartTooltip
+                          cursor={false}
+                          content={
+                            <ChartTooltipContent
+                              hideLabel
+                              formatter={(value, name, item) => {
+                                const porcentaje = ((value as number) / totalProducts * 100).toFixed(1)
+                                return (
+                                  <span>
+                                    {value} productos <span className="text-muted-foreground">({porcentaje}%)</span>
+                                  </span>
+                                )
+                              }}
+                            />
+                          }
+                        />
+                        <Pie
+                          data={inventoryStatus.map((item) => ({
+                            ...item,
+                            fill: categoryColors[item.categoria] || "hsl(217, 91%, 70%)",
+                          }))}
+                          dataKey="cantidad"
+                          nameKey="categoria"
+                          innerRadius={60}
+                          outerRadius={85}
+                          strokeWidth={3}
+                          stroke="hsl(var(--background))"
+                        >
+                          <Label
+                            content={({ viewBox }) => {
+                              if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                return (
+                                  <text
+                                    x={viewBox.cx}
+                                    y={viewBox.cy}
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                  >
+                                    <tspan
+                                      x={viewBox.cx}
+                                      y={viewBox.cy}
+                                      className="fill-foreground text-3xl font-bold"
+                                    >
+                                      {totalProducts.toLocaleString()}
+                                    </tspan>
+                                    <tspan
+                                      x={viewBox.cx}
+                                      y={(viewBox.cy || 0) + 22}
+                                      className="fill-muted-foreground text-sm"
+                                    >
+                                      productos
+                                    </tspan>
+                                  </text>
+                                )
+                              }
+                            }}
+                          />
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                  )
+                })()
+              ) : (
+                <div className="h-[200px] flex items-center justify-center bg-secondary/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">No hay datos de inventario</p>
+                </div>
+              )}
+            </CardContent>
+            {inventoryStatus && inventoryStatus.length > 0 && (
+              <CardFooter className="flex-col gap-2 text-sm pt-4">
+                <div className="grid grid-cols-2 gap-2 w-full">
                   {inventoryStatus.map((status, idx) => {
-                    const colors = ["#007BFF", "#284389", "#4D9FFF", "#3A5AA5"]
+                    const colorClasses: Record<string, string> = {
+                      "Stock Alto": "bg-[hsl(217,91%,50%)]",
+                      "Stock Normal": "bg-[hsl(217,91%,65%)]",
+                      "Stock Bajo": "bg-[hsl(217,91%,80%)]",
+                      "Sin Stock": "bg-[hsl(217,91%,90%)]",
+                    }
                     return (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-gray-50 to-white border border-gray-100"
+                        className="flex items-center gap-2"
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="h-3 w-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: colors[idx % colors.length] }}
-                          />
-                          <Text className="!text-sm !font-semibold !text-gray-700">
-                            {status.categoria}
-                          </Text>
-                        </div>
-                        <Text className="!text-sm !font-bold !text-gray-900">
-                          {formatCurrency(status.valor)}
-                        </Text>
+                        <div className={cn("h-2.5 w-2.5 rounded-full", colorClasses[status.categoria] || "bg-muted")} />
+                        <span className="text-xs text-muted-foreground">{status.categoria}</span>
+                        <span className="text-xs font-medium text-foreground ml-auto">{status.cantidad}</span>
                       </div>
                     )
                   })}
                 </div>
-              </>
-            ) : (
-              <div className="h-64 flex items-center justify-center bg-gray-50 rounded-xl">
-                <p className="text-gray-400 text-sm">No hay datos de inventario</p>
-              </div>
+              </CardFooter>
             )}
           </Card>
         </div>

@@ -22,7 +22,19 @@
       "Bash(curl:*)",
       "Bash(npm i:*)",
       "Bash(sudo npm i:*)",
-      "mcp__supabase__deploy_edge_function"
+      "mcp__supabase__deploy_edge_function",
+      "WebSearch",
+      "Bash(cd /Users/jmariopgarcia/Desktop/Cursor\\ Local/portal-rushdata && npx:*)",
+      "Bash(cat:*)",
+      "mcp__shadcn__get_project_registries",
+      "mcp__shadcn__list_items_in_registries",
+      "mcp__shadcn__view_items_in_registries",
+      "mcp__shadcn__search_items_in_registries",
+      "mcp__shadcn__get_item_examples_from_registries",
+      "mcp__shadcn__get_add_command_for_items",
+      "Bash(npx shadcn@latest add sidebar breadcrumb separator collapsible --yes)",
+      "Bash(kill:*)",
+      "Bash(cd /Users/jmariopgarcia/Desktop/Cursor\\ Local/portal-rushdata && npx shadcn@latest add alert --yes --overwrite:*)"
     ],
     "deny": [],
     "ask": []

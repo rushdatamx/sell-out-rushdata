@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AuthProvider } from "@/lib/auth/auth-context";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -21,11 +27,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <body className={`${montserrat.variable} font-montserrat`} suppressHydrationWarning>
-        <AuthProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </AuthProvider>
+    <html lang="es" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}
+        suppressHydrationWarning
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

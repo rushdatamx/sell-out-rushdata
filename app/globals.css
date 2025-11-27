@@ -4,62 +4,140 @@
 
 @layer base {
   :root {
-    /* RushData Brand Colors */
-    --rushdata-primary: 210 100% 50%;     /* #007BFF */
-    --rushdata-secondary: 222 52% 35%;    /* #284389 */
+    /* ============================================
+       RUSHDATA BRAND - NUEVA PALETA PREMIUM
+       ============================================ */
 
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    /* Primarios - Azul RushData evolucionado */
+    --rush-primary: 214 100% 50%;           /* #0066FF - Más vibrante */
+    --rush-primary-light: 214 100% 60%;     /* #3385FF */
+    --rush-primary-dark: 214 100% 40%;      /* #0052CC */
+
+    /* Acento tecnológico - Cian */
+    --rush-accent: 187 94% 43%;             /* #06B6D4 */
+    --rush-accent-light: 187 94% 53%;       /* #22D3EE */
+
+    /* Gradientes (valores para uso en JS/CSS) */
+    --gradient-start: #0066FF;
+    --gradient-end: #06B6D4;
+
+    /* ============================================
+       SISTEMA DE DISEÑO - LIGHT MODE
+       ============================================ */
+    --background: 210 20% 98%;              /* #FAFBFC */
+    --foreground: 215 25% 9%;               /* #0F172A */
+
+    --card: 0 0% 100%;                      /* #FFFFFF */
+    --card-foreground: 215 25% 9%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 210 100% 50%;              /* RushData Primary */
+    --popover-foreground: 215 25% 9%;
+
+    --primary: 214 100% 50%;                /* #0066FF */
     --primary-foreground: 0 0% 100%;
-    --secondary: 222 52% 35%;             /* RushData Secondary */
-    --secondary-foreground: 0 0% 100%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 52% 35%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 210 100% 50%;
-    --radius: 0.5rem;
-    --chart-1: 210 100% 50%;
-    --chart-2: 222 52% 35%;
-    --chart-3: 173 58% 39%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+
+    --secondary: 215 20% 95%;               /* #F1F5F9 */
+    --secondary-foreground: 215 25% 27%;    /* #334155 */
+
+    --muted: 215 20% 95%;
+    --muted-foreground: 215 16% 47%;        /* #64748B */
+
+    --accent: 187 94% 43%;                  /* #06B6D4 - Cian */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;                 /* #16A34A */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;                  /* #F59E0B */
+    --warning-foreground: 0 0% 100%;
+
+    --border: 215 20% 91%;                  /* #E2E8F0 */
+    --input: 215 20% 91%;
+    --ring: 214 100% 50%;
+
+    --radius: 0.625rem;                     /* 10px - Más moderno */
+
+    /* Charts */
+    --chart-1: 214 100% 50%;                /* Azul primario */
+    --chart-2: 187 94% 43%;                 /* Cian acento */
+    --chart-3: 142 76% 36%;                 /* Verde */
+    --chart-4: 38 92% 50%;                  /* Amarillo */
+    --chart-5: 0 84% 60%;                   /* Rojo */
+
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-shadow: 0 8px 32px rgba(0, 102, 255, 0.1);
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    /* ============================================
+       SISTEMA DE DISEÑO - DARK MODE
+       ============================================ */
+    --background: 222 47% 11%;              /* #0F172A */
+    --foreground: 210 40% 98%;              /* #F8FAFC */
+
+    --card: 217 33% 17%;                    /* #1E293B */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 214 100% 55%;                /* Azul más claro en dark */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 33% 22%;               /* #334155 */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 22%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 187 94% 48%;                  /* Cian más brillante */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 217 33% 28%;                  /* #475569 */
+    --input: 217 33% 28%;
+    --ring: 214 100% 55%;
+
+    /* Charts Dark */
+    --chart-1: 214 100% 60%;
+    --chart-2: 187 94% 55%;
+    --chart-3: 142 76% 50%;
+    --chart-4: 38 92% 60%;
+    --chart-5: 0 84% 65%;
+
+    /* Glassmorphism Dark */
+    --glass-bg: rgba(30, 41, 59, 0.8);
+    --glass-border: rgba(71, 85, 105, 0.5);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -67,65 +145,220 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /* Smooth transitions for theme changes */
+  html {
+    @apply scroll-smooth;
+  }
+
+  /* Better focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
-/* Tremor Chart Customization for RushData Colors */
-/* Override Tremor's default colors with RushData brand colors */
+/* ============================================
+   COMPONENTES UTILITARIOS
+   ============================================ */
 
-/* Scope to RushData charts specifically */
+@layer components {
+  /* Glassmorphism Card */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* Gradient Background */
+  .gradient-bg {
+    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Subtle Gradient Background */
+  .gradient-subtle {
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary)) 100%);
+  }
+
+  /* Glow Effect */
+  .glow {
+    box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+  }
+
+  /* Hover Glow */
+  .hover-glow {
+    transition: box-shadow 0.3s ease;
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 30px rgba(0, 102, 255, 0.3);
+  }
+
+  /* Card Hover Effect */
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 102, 255, 0.15);
+  }
+}
+
+/* ============================================
+   ANIMACIONES CUSTOM
+   ============================================ */
+
+@layer utilities {
+  /* Fade In Up */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+
+  /* Fade In */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  /* Scale In */
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out forwards;
+  }
+
+  /* Slide In Right */
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out forwards;
+  }
+
+  /* Pulse Glow */
+  .animate-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  /* Shimmer */
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--secondary)) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 102, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 102, 255, 0.5);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================
+   TREMOR / RECHARTS CUSTOMIZATION
+   ============================================ */
+
+/* Scope to RushData charts */
 .rushdata-chart .recharts-bar-rectangle,
 .rushdata-chart .recharts-rectangle,
 .rushdata-chart rect[class*="recharts"],
 .rushdata-chart path[class*="recharts"] {
-  fill: #007BFF !important;
+  fill: hsl(var(--chart-1)) !important;
 }
 
-/* Target second category bars with secondary color */
 .rushdata-chart .recharts-layer:nth-of-type(2) rect,
 .rushdata-chart .recharts-layer:nth-of-type(2) path {
-  fill: #284389 !important;
-}
-
-/* More specific targeting for Tremor's implementation */
-.rushdata-chart svg rect[fill]:not([fill="none"]) {
-  fill: #007BFF !important;
-}
-
-.rushdata-chart svg g:nth-of-type(2) rect[fill]:not([fill="none"]) {
-  fill: #284389 !important;
-}
-
-/* Target by data key if Tremor uses it */
-.rushdata-chart [data-key="Ventas"] rect,
-.rushdata-chart [data-key="Ventas"] path {
-  fill: #007BFF !important;
-}
-
-.rushdata-chart [data-key="Objetivo"] rect,
-.rushdata-chart [data-key="Objetivo"] path {
-  fill: #284389 !important;
+  fill: hsl(var(--chart-2)) !important;
 }
 
 /* Text and axes styling */
 .recharts-cartesian-axis-tick text,
 .recharts-text,
 .recharts-label {
-  fill: rgb(55, 65, 81) !important;
+  fill: hsl(var(--muted-foreground)) !important;
   font-weight: 500 !important;
-  font-size: 0.875rem !important;
+  font-size: 0.75rem !important;
 }
 
 .recharts-legend-item text {
-  fill: rgb(55, 65, 81) !important;
+  fill: hsl(var(--foreground)) !important;
   font-weight: 600 !important;
 }
 
 /* Grid lines */
 .recharts-cartesian-grid line {
-  stroke: rgb(229, 231, 235) !important;
+  stroke: hsl(var(--border)) !important;
   stroke-dasharray: 3 3;
 }
 
@@ -135,9 +368,58 @@
 }
 
 .recharts-default-tooltip {
-  background-color: white !important;
-  border: 1px solid rgb(229, 231, 235) !important;
-  border-radius: 0.5rem !important;
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: var(--radius) !important;
   padding: 0.75rem !important;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ============================================
+   SCROLLBAR CUSTOMIZATION
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--secondary));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--secondary));
+}
+
+/* ============================================
+   SELECTION STYLING
+   ============================================ */
+
+::selection {
+  background: hsl(var(--primary) / 0.2);
+  color: hsl(var(--foreground));
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
