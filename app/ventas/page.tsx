@@ -185,7 +185,7 @@ function SparklineKPICard({
               <span
                 className={cn(
                   "inline-flex items-center gap-0.5 text-xs font-semibold flex-shrink-0",
-                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                  isPositive ? "text-[hsl(217,91%,50%)]" : "text-[hsl(220,9%,30%)]"
                 )}
               >
                 {(actualChange ?? 0) >= 0 ? (
@@ -773,7 +773,7 @@ export default function VentasPage() {
                             <TableCell className="text-sm text-right font-medium">
                               {formatNumber(venta.cantidad_solicitada)}
                             </TableCell>
-                            <TableCell className="text-sm text-right text-emerald-600 font-medium">
+                            <TableCell className="text-sm text-right text-[hsl(217,91%,50%)] font-medium">
                               {formatNumber(venta.cantidad_entregada)}
                             </TableCell>
                             <TableCell className="text-sm text-right font-semibold">
@@ -882,7 +882,7 @@ export default function VentasPage() {
                             <TableCell className="text-sm text-right text-muted-foreground">
                               {formatCurrency(item.costo_total)}
                             </TableCell>
-                            <TableCell className="text-sm text-right font-semibold text-emerald-600">
+                            <TableCell className="text-sm text-right font-semibold text-[hsl(217,91%,50%)]">
                               {formatCurrency(item.margen_bruto)}
                             </TableCell>
                             <TableCell className="text-right">
@@ -979,11 +979,11 @@ export default function VentasPage() {
                         <div className={cn(
                           "h-10 w-10 rounded-lg flex items-center justify-center",
                           item.nombre === "100%"
-                            ? "bg-emerald-100 text-emerald-600"
+                            ? "bg-[hsl(217,91%,95%)] text-[hsl(217,91%,50%)]"
                             : item.nombre.includes("90")
-                            ? "bg-blue-100 text-blue-600"
+                            ? "bg-[hsl(217,91%,90%)] text-[hsl(217,91%,60%)]"
                             : item.nombre.includes("75")
-                            ? "bg-amber-100 text-amber-600"
+                            ? "bg-[hsl(220,9%,90%)] text-[hsl(220,9%,46%)]"
                             : "bg-muted text-muted-foreground"
                         )}>
                           <ShoppingCart className="h-5 w-5" />
@@ -1180,7 +1180,7 @@ export default function VentasPage() {
                           {item.impacto_margen !== null && (
                             <span className={cn(
                               "font-semibold",
-                              item.impacto_margen < 0 ? "text-destructive" : "text-emerald-600"
+                              item.impacto_margen < 0 ? "text-[hsl(220,9%,30%)]" : "text-[hsl(217,91%,50%)]"
                             )}>
                               ({item.impacto_margen > 0 ? "+" : ""}{item.impacto_margen.toFixed(1)}%)
                             </span>
