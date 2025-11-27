@@ -23,19 +23,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Obtener sesión inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        // Si hay error de refresh token, limpiar sesión corrupta
+        if (error.message?.includes('Refresh Token') || error.message?.includes('refresh_token')) {
+          console.warn("Refresh token inválido, limpiando sesión...")
+          supabase.auth.signOut()
+        } else {
+          console.error("Error getting session:", error)
+        }
+        setSession(null)
+        setUser(null)
+      } else {
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
       setLoading(false)
     }).catch((error) => {
       console.error("Error getting session:", error)
+      setSession(null)
+      setUser(null)
       setLoading(false)
     })
 
     // Escuchar cambios de autenticación
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Manejar errores de token
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        console.warn("Token refresh falló, cerrando sesión...")
+        supabase.auth.signOut()
+      }
+
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
