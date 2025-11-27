@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { motion } from "framer-motion"
 import {
   useReactTable,
   getCoreRowModel,
@@ -12,7 +13,14 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from "@tanstack/react-table"
-import { Card, Metric, Text, Badge, Button } from "@tremor/react"
+import { Badge, Card as TremorCard } from "@tremor/react"
+import { Card as ShadcnCard, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { type DateRange } from "react-day-picker"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ChartConfig, ChartContainer } from "@/components/ui/chart"
+import { Area, AreaChart } from "recharts"
 import {
   Users,
   UserPlus,
@@ -28,7 +36,9 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  AlertCircle,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   useClientsKPIs,
   useClientsList,
@@ -41,6 +51,38 @@ import { ClientDetailModal } from "@/components/clientes/client-detail-modal"
 
 // Por ahora usamos el tenant_id real
 const TENANT_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+
+// Generate sample sparkline data based on trend
+function generateSparklineData(trend: number, baseValue: number = 100): { value: number }[] {
+  const points = 12
+  const data: { value: number }[] = []
+  let current = baseValue * (1 - Math.abs(trend) / 100)
+
+  for (let i = 0; i < points; i++) {
+    const progress = i / (points - 1)
+    const noise = (Math.random() - 0.5) * baseValue * 0.15
+    const trendValue = trend >= 0
+      ? current + (baseValue - current) * progress
+      : baseValue - (baseValue - current) * progress
+    data.push({ value: Math.max(0, trendValue + noise) })
+  }
+
+  // Ensure last point reflects the trend direction
+  if (trend >= 0) {
+    data[data.length - 1] = { value: baseValue * 1.1 }
+  } else {
+    data[data.length - 1] = { value: baseValue * 0.85 }
+  }
+
+  return data
+}
+
+const sparklineChartConfig = {
+  value: {
+    label: "Value",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("es-MX", {
@@ -102,8 +144,7 @@ export default function ClientesPage() {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
 
   // Filtros temporales (no aplicados todavía)
-  const [tempFechaInicio, setTempFechaInicio] = useState<string>("")
-  const [tempFechaFin, setTempFechaFin] = useState<string>("")
+  const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>(undefined)
   const [tempClienteIds, setTempClienteIds] = useState<number[]>([])
   const [tempProductoIds, setTempProductoIds] = useState<number[]>([])
 
@@ -136,8 +177,8 @@ export default function ClientesPage() {
   // Función para aplicar filtros
   const handleApplyFilters = () => {
     setAppliedFilters({
-      fechaInicio: tempFechaInicio,
-      fechaFin: tempFechaFin,
+      fechaInicio: tempDateRange?.from ? tempDateRange.from.toISOString().split('T')[0] : "",
+      fechaFin: tempDateRange?.to ? tempDateRange.to.toISOString().split('T')[0] : "",
       clienteIds: tempClienteIds,
       productoIds: tempProductoIds,
     })
@@ -145,8 +186,7 @@ export default function ClientesPage() {
 
   // Función para limpiar filtros
   const handleClearFilters = () => {
-    setTempFechaInicio("")
-    setTempFechaFin("")
+    setTempDateRange(undefined)
     setTempClienteIds([])
     setTempProductoIds([])
     setAppliedFilters({
@@ -383,248 +423,335 @@ export default function ClientesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
-      <div className="max-w-[1800px] mx-auto p-6 lg:p-8 space-y-8">
+    <div className="min-h-screen">
+      <div className="max-w-[1600px] mx-auto space-y-8">
         {/* Header */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+        >
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-semibold text-foreground">
               Clientes
             </h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Gestiona y analiza la información de tus clientes
             </p>
           </div>
+        </motion.div>
+
+        {/* Filtros - Estilo Notion */}
+        <div className="flex flex-wrap items-center gap-3">
+          <DateRangePicker
+            dateRange={tempDateRange}
+            onDateRangeChange={setTempDateRange}
+            placeholder="Período"
+            className="w-auto"
+          />
+
+          <MultiSelect
+            options={clientesOptions || []}
+            selected={tempClienteIds}
+            onChange={setTempClienteIds}
+            placeholder="Clientes"
+          />
+
+          <MultiSelect
+            options={productosOptions || []}
+            selected={tempProductoIds}
+            onChange={setTempProductoIds}
+            placeholder="Productos"
+          />
+
+          <Button onClick={handleApplyFilters} size="sm">
+            Aplicar
+          </Button>
+
+          {(tempDateRange || tempClienteIds.length > 0 || tempProductoIds.length > 0) && (
+            <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-muted-foreground">
+              Limpiar filtros
+            </Button>
+          )}
         </div>
 
-        {/* Filtros */}
-        <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-md !rounded-2xl !p-6">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Fecha Inicio */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Fecha Inicio
-                </label>
-                <input
-                  type="date"
-                  value={tempFechaInicio}
-                  onChange={(e) => setTempFechaInicio(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-
-              {/* Fecha Fin */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Fecha Fin
-                </label>
-                <input
-                  type="date"
-                  value={tempFechaFin}
-                  onChange={(e) => setTempFechaFin(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-
-              {/* Clientes Multiselect */}
-              <div>
-                <MultiSelect
-                  label="Clientes"
-                  options={clientesOptions || []}
-                  selected={tempClienteIds}
-                  onChange={setTempClienteIds}
-                  placeholder="Seleccionar clientes..."
-                />
-              </div>
-
-              {/* Productos Multiselect */}
-              <div>
-                <MultiSelect
-                  label="Productos"
-                  options={productosOptions || []}
-                  selected={tempProductoIds}
-                  onChange={setTempProductoIds}
-                  placeholder="Seleccionar productos..."
-                />
-              </div>
-            </div>
-
-            {/* Botones de acción */}
-            <div className="flex items-center gap-3 justify-end">
-              <Button onClick={handleClearFilters} variant="secondary" className="!bg-gray-100 hover:!bg-gray-200 !text-gray-700">
-                Limpiar Filtros
-              </Button>
-              <Button onClick={handleApplyFilters} className="!bg-[#007BFF] hover:!bg-[#0056b3] !text-white">
-                Aplicar Filtros
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* KPIs */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Total Clientes Activos */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Clientes Activos
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-20 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      kpis?.total_clientes_activos || 0
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#007BFF] to-[#0056b3] flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Users className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              {kpis && (
-                <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
-                  <div
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0 ${
-                      kpis.variacion_activos_pct >= 0
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {kpis.variacion_activos_pct >= 0 ? (
-                      <ArrowUp className="h-3 w-3" />
-                    ) : (
-                      <ArrowDown className="h-3 w-3" />
-                    )}
-                    {Math.abs(kpis.variacion_activos_pct).toFixed(1)}%
+        {/* KPIs con Sparklines */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Clientes Activos */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0, ease: [0.25, 0.4, 0.25, 1] }}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          >
+            <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+              <CardContent className="p-5 pb-0">
+                <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
+                  Clientes Activos
+                </p>
+                {kpisLoading ? (
+                  <Skeleton className="h-6 w-24 mb-1" />
+                ) : (
+                  <p className="text-lg font-bold text-foreground tracking-tight truncate">
+                    {kpis?.total_clientes_activos || 0}
+                  </p>
+                )}
+                {kpis && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-0.5 text-xs font-semibold flex-shrink-0",
+                        kpis.variacion_activos_pct >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      )}
+                    >
+                      {kpis.variacion_activos_pct >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {kpis.variacion_activos_pct >= 0 ? "+" : ""}{kpis.variacion_activos_pct.toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate">vs anterior</span>
                   </div>
-                  <Text className="!text-xs !text-gray-500 truncate">vs período anterior</Text>
+                )}
+                <div className="h-16 mt-3 -mx-5 -mb-1">
+                  <ChartContainer config={sparklineChartConfig} className="h-full w-full">
+                    <AreaChart
+                      data={generateSparklineData(kpis?.variacion_activos_pct || 0)}
+                      margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gradientActivos" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            stopColor={kpis?.variacion_activos_pct && kpis.variacion_activos_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={kpis?.variacion_activos_pct && kpis.variacion_activos_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={kpis?.variacion_activos_pct && kpis.variacion_activos_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                        strokeWidth={2}
+                        fill="url(#gradientActivos)"
+                        dot={false}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
                 </div>
-              )}
-            </div>
-          </Card>
+              </CardContent>
+            </ShadcnCard>
+          </motion.div>
 
           {/* Clientes Nuevos */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Clientes Nuevos
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-20 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      kpis?.clientes_nuevos_periodo || 0
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <UserPlus className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              {kpis && (
-                <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
-                  <div
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0 ${
-                      kpis.variacion_nuevos_pct >= 0
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {kpis.variacion_nuevos_pct >= 0 ? (
-                      <ArrowUp className="h-3 w-3" />
-                    ) : (
-                      <ArrowDown className="h-3 w-3" />
-                    )}
-                    {Math.abs(kpis.variacion_nuevos_pct).toFixed(1)}%
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.05, ease: [0.25, 0.4, 0.25, 1] }}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          >
+            <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+              <CardContent className="p-5 pb-0">
+                <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
+                  Clientes Nuevos
+                </p>
+                {kpisLoading ? (
+                  <Skeleton className="h-6 w-24 mb-1" />
+                ) : (
+                  <p className="text-lg font-bold text-foreground tracking-tight truncate">
+                    {kpis?.clientes_nuevos_periodo || 0}
+                  </p>
+                )}
+                {kpis && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-0.5 text-xs font-semibold flex-shrink-0",
+                        kpis.variacion_nuevos_pct >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      )}
+                    >
+                      {kpis.variacion_nuevos_pct >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {kpis.variacion_nuevos_pct >= 0 ? "+" : ""}{kpis.variacion_nuevos_pct.toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate">vs anterior</span>
                   </div>
-                  <Text className="!text-xs !text-gray-500 truncate">vs período anterior</Text>
+                )}
+                <div className="h-16 mt-3 -mx-5 -mb-1">
+                  <ChartContainer config={sparklineChartConfig} className="h-full w-full">
+                    <AreaChart
+                      data={generateSparklineData(kpis?.variacion_nuevos_pct || 0)}
+                      margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gradientNuevos" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            stopColor={kpis?.variacion_nuevos_pct && kpis.variacion_nuevos_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={kpis?.variacion_nuevos_pct && kpis.variacion_nuevos_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={kpis?.variacion_nuevos_pct && kpis.variacion_nuevos_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                        strokeWidth={2}
+                        fill="url(#gradientNuevos)"
+                        dot={false}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
                 </div>
-              )}
-            </div>
-          </Card>
+              </CardContent>
+            </ShadcnCard>
+          </motion.div>
 
           {/* Clientes en Riesgo */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-red-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    En Riesgo
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-20 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      kpis?.clientes_en_riesgo || 0
-                    )}
-                  </Metric>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1, ease: [0.25, 0.4, 0.25, 1] }}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          >
+            <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+              <CardContent className="p-5 pb-0">
+                <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
+                  En Riesgo
+                </p>
+                {kpisLoading ? (
+                  <Skeleton className="h-6 w-24 mb-1" />
+                ) : (
+                  <p className="text-lg font-bold text-foreground tracking-tight truncate">
+                    {kpis?.clientes_en_riesgo || 0}
+                  </p>
+                )}
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-xs text-muted-foreground truncate">Sin comprar 60+ días</span>
                 </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-white" />
+                <div className="h-16 mt-3 -mx-5 -mb-1">
+                  <ChartContainer config={sparklineChartConfig} className="h-full w-full">
+                    <AreaChart
+                      data={generateSparklineData(kpis?.clientes_en_riesgo && kpis.clientes_en_riesgo > 0 ? -15 : 0)}
+                      margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gradientRiesgo" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(0, 72%, 51%)" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="hsl(0, 72%, 51%)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="hsl(0, 72%, 51%)"
+                        strokeWidth={2}
+                        fill="url(#gradientRiesgo)"
+                        dot={false}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
                 </div>
-              </div>
-              <Text className="!text-xs !text-gray-500 mt-auto pt-2 border-t border-gray-100 truncate">
-                Sin comprar 60+ días
-              </Text>
-            </div>
-          </Card>
+              </CardContent>
+            </ShadcnCard>
+          </motion.div>
 
           {/* Revenue Promedio */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Revenue Promedio
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {kpisLoading ? (
-                      <span className="inline-block h-6 w-32 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      <span className="block truncate">
-                        {formatCurrency(kpis?.revenue_promedio_cliente || 0)}
-                      </span>
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#284389] to-[#1a2f5f] flex items-center justify-center shadow-lg flex-shrink-0">
-                  <DollarSign className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              {kpis && (
-                <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
-                  <div
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0 ${
-                      kpis.variacion_revenue_pct >= 0
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {kpis.variacion_revenue_pct >= 0 ? (
-                      <ArrowUp className="h-3 w-3" />
-                    ) : (
-                      <ArrowDown className="h-3 w-3" />
-                    )}
-                    {Math.abs(kpis.variacion_revenue_pct).toFixed(1)}%
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15, ease: [0.25, 0.4, 0.25, 1] }}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          >
+            <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+              <CardContent className="p-5 pb-0">
+                <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
+                  Revenue Promedio
+                </p>
+                {kpisLoading ? (
+                  <Skeleton className="h-6 w-32 mb-1" />
+                ) : (
+                  <p className="text-lg font-bold text-foreground tracking-tight truncate">
+                    {formatCurrency(kpis?.revenue_promedio_cliente || 0)}
+                  </p>
+                )}
+                {kpis && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-0.5 text-xs font-semibold flex-shrink-0",
+                        kpis.variacion_revenue_pct >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      )}
+                    >
+                      {kpis.variacion_revenue_pct >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {kpis.variacion_revenue_pct >= 0 ? "+" : ""}{kpis.variacion_revenue_pct.toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate">vs anterior</span>
                   </div>
-                  <Text className="!text-xs !text-gray-500 truncate">vs período anterior</Text>
+                )}
+                <div className="h-16 mt-3 -mx-5 -mb-1">
+                  <ChartContainer config={sparklineChartConfig} className="h-full w-full">
+                    <AreaChart
+                      data={generateSparklineData(kpis?.variacion_revenue_pct || 0)}
+                      margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gradientRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            stopColor={kpis?.variacion_revenue_pct && kpis.variacion_revenue_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={kpis?.variacion_revenue_pct && kpis.variacion_revenue_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={kpis?.variacion_revenue_pct && kpis.variacion_revenue_pct >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                        strokeWidth={2}
+                        fill="url(#gradientRevenue)"
+                        dot={false}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
                 </div>
-              )}
-            </div>
-          </Card>
+              </CardContent>
+            </ShadcnCard>
+          </motion.div>
         </div>
 
         {/* Tabla */}
-        <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl overflow-hidden !p-0">
+        <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl overflow-hidden !p-0">
           {/* Toolbar */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -733,7 +860,7 @@ export default function ClientesPage() {
               </>
             )}
           </div>
-        </Card>
+        </TremorCard>
       </div>
 
       {/* Client Detail Modal */}
