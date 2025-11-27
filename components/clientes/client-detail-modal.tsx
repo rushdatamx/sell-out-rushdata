@@ -1,7 +1,20 @@
 "use client"
 
-import { X, Mail, Phone, MapPin, CreditCard, TrendingUp, Package, ShoppingCart } from "lucide-react"
-import { Card, Metric, Text, Badge, BarChart } from "@tremor/react"
+import { X, MapPin, Mail, Phone, TrendingUp, TrendingDown, Minus, ExternalLink } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ChartConfig, ChartContainer } from "@/components/ui/chart"
+import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
+import { cn } from "@/lib/utils"
 import {
   useClientDetail,
   useClientSalesHistory,
@@ -26,11 +39,46 @@ function formatCurrency(value: number): string {
 function formatDate(date: string | null): string {
   if (!date) return "-"
   return new Date(date).toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+}
+
+function formatDateLong(date: string | null): string {
+  if (!date) return "-"
+  return new Date(date).toLocaleDateString("es-MX", {
     year: "numeric",
     month: "long",
     day: "numeric",
   })
 }
+
+// Notion-style property row
+function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start py-1.5 group">
+      <span className="w-32 flex-shrink-0 text-sm text-muted-foreground">{label}</span>
+      <div className="flex-1 text-sm text-foreground">{children}</div>
+    </div>
+  )
+}
+
+// Notion-style section header
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+      {children}
+    </h3>
+  )
+}
+
+const chartConfig = {
+  ventas: {
+    label: "Ventas",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
 
 export function ClientDetailModal({ tenantId, clienteId, onClose }: ClientDetailModalProps) {
   const { data: client, isLoading } = useClientDetail(tenantId, clienteId)
@@ -40,323 +88,280 @@ export function ClientDetailModal({ tenantId, clienteId, onClose }: ClientDetail
 
   if (!clienteId) return null
 
-  const getStatusColor = (status: string) => {
-    const statusMap: Record<string, string> = {
-      activo: "emerald",
-      inactivo: "gray",
-      en_riesgo: "red",
-    }
-    return statusMap[status] || "gray"
-  }
-
-  const getClasificacionColor = (clasificacion: string) => {
-    const map: Record<string, string> = {
-      A: "blue",
-      B: "indigo",
-      C: "gray",
-    }
-    return map[clasificacion] || "gray"
-  }
-
   // Prepare chart data
   const chartData =
     salesHistory?.map((item) => ({
-      mes: `${item.mes.substring(0, 3)} ${item.anio}`,
-      Ventas: item.total_ventas,
+      mes: `${item.mes.substring(0, 3)}`,
+      ventas: item.total_ventas,
     })) || []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            {isLoading ? (
-              <div className="h-8 w-64 bg-gray-200 animate-pulse rounded" />
-            ) : (
-              <>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-2xl font-bold text-gray-900 truncate">
-                    {client?.nombre}
-                  </h2>
-                  <p className="text-sm text-gray-500">{client?.clave_cliente}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge color={getClasificacionColor(client?.segmento_abc || "C")}>
-                    Clase {client?.segmento_abc}
-                  </Badge>
-                  <Badge
-                    color={getStatusColor(
-                      client?.activo ? "activo" : "inactivo"
-                    )}
-                  >
-                    {client?.activo ? "Activo" : "Inactivo"}
-                  </Badge>
-                </div>
-              </>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="ml-4 p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+    <Dialog open={!!clienteId} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        {/* Header - Notion style */}
+        <DialogHeader className="px-6 pt-6 pb-4 space-y-0">
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-32" />
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* KPIs Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <Text className="!text-xs !text-gray-500">Lifetime Value</Text>
-                      <Metric className="!text-lg !text-gray-900">
-                        {formatCurrency(client?.lifetime_value || 0)}
-                      </Metric>
-                    </div>
-                  </div>
-                </Card>
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <DialogTitle className="text-2xl font-semibold text-foreground tracking-tight">
+                  {client?.nombre}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground font-mono">
+                  {client?.clave_cliente}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={
+                    client?.segmento_abc === "A"
+                      ? "default"
+                      : client?.segmento_abc === "B"
+                      ? "secondary"
+                      : "outline"
+                  }
+                  className="font-semibold"
+                >
+                  Clase {client?.segmento_abc}
+                </Badge>
+                <Badge variant={client?.activo ? "success" : "secondary"}>
+                  {client?.activo ? "Activo" : "Inactivo"}
+                </Badge>
+              </div>
+            </div>
+          )}
+        </DialogHeader>
 
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                      <ShoppingCart className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <Text className="!text-xs !text-gray-500">Total Órdenes</Text>
-                      <Metric className="!text-lg !text-gray-900">
-                        {client?.total_ordenes || 0}
-                      </Metric>
-                    </div>
-                  </div>
-                </Card>
+        <Separator />
 
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                      <Package className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <Text className="!text-xs !text-gray-500">Ticket Promedio</Text>
-                      <Metric className="!text-lg !text-gray-900">
-                        {formatCurrency(client?.ticket_promedio || 0)}
-                      </Metric>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <Text className="!text-xs !text-gray-500">Días Crédito</Text>
-                      <Metric className="!text-lg !text-gray-900">
-                        {client?.dias_credito || 0}
-                      </Metric>
-                    </div>
-                  </div>
-                </Card>
+        {/* Content */}
+        <ScrollArea className="flex-1 max-h-[calc(90vh-120px)]">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : (
+            <div className="px-6 py-5 space-y-8">
+              {/* KPIs - Notion inline style */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Lifetime Value</p>
+                  <p className="text-xl font-semibold text-foreground">
+                    {formatCurrency(client?.lifetime_value || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Total Órdenes</p>
+                  <p className="text-xl font-semibold text-foreground">
+                    {client?.total_ordenes || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Ticket Promedio</p>
+                  <p className="text-xl font-semibold text-foreground">
+                    {formatCurrency(client?.ticket_promedio || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Días Crédito</p>
+                  <p className="text-xl font-semibold text-foreground">
+                    {client?.dias_credito || 0}
+                  </p>
+                </div>
               </div>
 
-              {/* Two Column Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Separator />
+
+              {/* Two columns layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Column */}
-                <div className="space-y-6">
-                  {/* Información General */}
-                  <Card>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Información General
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500">Ubicación</p>
-                          <p className="text-sm text-gray-900">
-                            {[client?.ciudad, client?.estado, client?.zona]
-                              .filter(Boolean)
-                              .join(", ") || "Sin información"}
-                          </p>
-                        </div>
-                      </div>
-
+                <div className="space-y-8">
+                  {/* Properties - Notion database style */}
+                  <div>
+                    <SectionHeader>Información</SectionHeader>
+                    <div className="space-y-0.5">
+                      <PropertyRow label="Ubicación">
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          {[client?.ciudad, client?.estado, client?.zona]
+                            .filter(Boolean)
+                            .join(", ") || "Sin información"}
+                        </span>
+                      </PropertyRow>
                       {client?.contacto_principal?.email && (
-                        <div className="flex items-start gap-3">
-                          <Mail className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500">Email</p>
-                            <p className="text-sm text-gray-900 truncate">
-                              {client.contacto_principal.email}
-                            </p>
-                          </div>
-                        </div>
+                        <PropertyRow label="Email">
+                          <span className="flex items-center gap-1.5">
+                            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                            {client.contacto_principal.email}
+                          </span>
+                        </PropertyRow>
                       )}
-
                       {client?.contacto_principal?.telefono && (
-                        <div className="flex items-start gap-3">
-                          <Phone className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500">Teléfono</p>
-                            <p className="text-sm text-gray-900">
-                              {client.contacto_principal.telefono}
-                            </p>
-                          </div>
-                        </div>
+                        <PropertyRow label="Teléfono">
+                          <span className="flex items-center gap-1.5">
+                            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                            {client.contacto_principal.telefono}
+                          </span>
+                        </PropertyRow>
                       )}
-
-                      <div className="pt-3 border-t border-gray-200 grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-gray-500">Tipo Cliente</p>
-                          <p className="text-sm font-medium text-gray-900 capitalize">
-                            {client?.tipo_cliente?.replace("_", " ") || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Canal</p>
-                          <p className="text-sm font-medium text-gray-900 capitalize">
-                            {client?.canal || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Última Compra</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatDate(client?.ultima_compra || null)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Frecuencia</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {client?.frecuencia_compra_dias
-                              ? `Cada ${Math.round(client.frecuencia_compra_dias)} días`
-                              : "-"}
-                          </p>
-                        </div>
-                      </div>
+                      <PropertyRow label="Tipo Cliente">
+                        <span className="capitalize">
+                          {client?.tipo_cliente?.replace("_", " ") || "-"}
+                        </span>
+                      </PropertyRow>
+                      <PropertyRow label="Canal">
+                        <span className="capitalize">{client?.canal || "-"}</span>
+                      </PropertyRow>
+                      <PropertyRow label="Última Compra">
+                        {formatDateLong(client?.ultima_compra || null)}
+                      </PropertyRow>
+                      <PropertyRow label="Frecuencia">
+                        {client?.frecuencia_compra_dias
+                          ? `Cada ${Math.round(client.frecuencia_compra_dias)} días`
+                          : "-"}
+                      </PropertyRow>
                     </div>
-                  </Card>
+                  </div>
 
-                  {/* Top Productos */}
-                  <Card>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Top 5 Productos
-                    </h3>
-                    <div className="space-y-3">
-                      {topProducts && topProducts.length > 0 ? (
-                        topProducts.map((producto) => (
+                  {/* Top Products - Notion list style */}
+                  <div>
+                    <SectionHeader>Top Productos</SectionHeader>
+                    {topProducts && topProducts.length > 0 ? (
+                      <div className="space-y-2">
+                        {topProducts.map((producto, idx) => (
                           <div
                             key={producto.producto_id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-md hover:bg-muted/50 transition-colors group"
                           >
+                            <span className="w-5 h-5 flex items-center justify-center text-xs font-medium text-muted-foreground bg-muted rounded">
+                              {idx + 1}
+                            </span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">
+                              <p className="text-sm font-medium text-foreground truncate">
                                 {producto.nombre_producto}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                {producto.categoria} • {producto.num_ordenes} órdenes
+                              <p className="text-xs text-muted-foreground">
+                                {producto.categoria} · {producto.num_ordenes} órdenes
                               </p>
                             </div>
-                            <div className="text-right ml-3 flex-shrink-0">
-                              <p className="text-sm font-bold text-blue-600">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-primary">
                                 {formatCurrency(producto.total_ventas)}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-muted-foreground">
                                 {producto.porcentaje_ventas.toFixed(1)}%
                               </p>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          No hay productos disponibles
-                        </p>
-                      )}
-                    </div>
-                  </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-4">
+                        No hay productos disponibles
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-6">
-                  {/* Sales Chart */}
-                  <Card>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Historial de Ventas (últimos 6 meses)
-                    </h3>
+                <div className="space-y-8">
+                  {/* Sales Chart - Clean Notion style */}
+                  <div>
+                    <SectionHeader>Historial de Ventas</SectionHeader>
                     {chartData.length > 0 ? (
-                      <BarChart
-                        data={chartData}
-                        index="mes"
-                        categories={["Ventas"]}
-                        colors={["blue"]}
-                        valueFormatter={formatCurrency}
-                        yAxisWidth={80}
-                        className="h-64"
-                      />
+                      <div className="h-48">
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                          <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                            <XAxis
+                              dataKey="mes"
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            />
+                            <YAxis
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                              width={50}
+                            />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="bg-popover border border-border rounded-md shadow-md px-3 py-2">
+                                      <p className="text-sm font-medium text-foreground">
+                                        {formatCurrency(payload[0].value as number)}
+                                      </p>
+                                    </div>
+                                  )
+                                }
+                                return null
+                              }}
+                            />
+                            <Bar
+                              dataKey="ventas"
+                              fill="hsl(var(--primary))"
+                              radius={[4, 4, 0, 0]}
+                            />
+                          </BarChart>
+                        </ChartContainer>
+                      </div>
                     ) : (
-                      <p className="text-sm text-gray-500 text-center py-8">
+                      <p className="text-sm text-muted-foreground py-8 text-center">
                         No hay datos de ventas disponibles
                       </p>
                     )}
-                  </Card>
+                  </div>
 
-                  {/* Recent Orders */}
-                  <Card>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Órdenes Recientes
-                    </h3>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {recentOrders && recentOrders.length > 0 ? (
-                        recentOrders.map((order, idx) => (
+                  {/* Recent Orders - Notion table style */}
+                  <div>
+                    <SectionHeader>Órdenes Recientes</SectionHeader>
+                    {recentOrders && recentOrders.length > 0 ? (
+                      <div className="space-y-1">
+                        {recentOrders.slice(0, 8).map((order, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                            className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-md hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900">
+                              <p className="text-sm font-medium text-foreground font-mono">
                                 {order.numero_orden}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                {formatDate(order.fecha)} • {order.num_productos} productos
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(order.fecha)} · {order.num_productos} productos
                               </p>
                             </div>
-                            <div className="text-right ml-3 flex-shrink-0">
-                              <p className="text-sm font-bold text-gray-900">
+                            <div className="text-right flex items-center gap-2">
+                              <p className="text-sm font-semibold text-foreground">
                                 {formatCurrency(order.total_ventas)}
                               </p>
                               <Badge
-                                color={order.estado === "completada" ? "emerald" : "gray"}
-                                className="!text-xs"
+                                variant={order.estado === "completada" ? "success" : "secondary"}
+                                className="text-xs"
                               >
                                 {order.estado}
                               </Badge>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          No hay órdenes disponibles
-                        </p>
-                      )}
-                    </div>
-                  </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-4">
+                        No hay órdenes disponibles
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   )
 }

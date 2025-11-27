@@ -34,7 +34,9 @@
       "mcp__shadcn__get_add_command_for_items",
       "Bash(npx shadcn@latest add sidebar breadcrumb separator collapsible --yes)",
       "Bash(kill:*)",
-      "Bash(cd /Users/jmariopgarcia/Desktop/Cursor\\ Local/portal-rushdata && npx shadcn@latest add alert --yes --overwrite:*)"
+      "Bash(cd /Users/jmariopgarcia/Desktop/Cursor\\ Local/portal-rushdata && npx shadcn@latest add alert --yes --overwrite:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

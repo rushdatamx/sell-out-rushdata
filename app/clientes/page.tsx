@@ -13,14 +13,24 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from "@tanstack/react-table"
-import { Badge, Card as TremorCard } from "@tremor/react"
-import { Card as ShadcnCard, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { type DateRange } from "react-day-picker"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { Area, AreaChart } from "recharts"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   Users,
   UserPlus,
@@ -102,27 +112,28 @@ function ClientAvatar({ name }: { name: string }) {
     .toUpperCase()
 
   return (
-    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-      {initials}
-    </div>
+    <Avatar className="h-8 w-8">
+      <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+        {initials}
+      </AvatarFallback>
+    </Avatar>
   )
 }
 
 // Componente Status Badge
 function StatusBadge({ status }: { status: string }) {
   const config = {
-    activo: { color: "emerald", label: "Activo", dot: "bg-emerald-500" },
-    inactivo: { color: "gray", label: "Inactivo", dot: "bg-gray-400" },
-    en_riesgo: { color: "red", label: "En Riesgo", dot: "bg-red-500" },
+    activo: { variant: "success" as const, label: "Activo" },
+    inactivo: { variant: "secondary" as const, label: "Inactivo" },
+    en_riesgo: { variant: "destructive" as const, label: "En Riesgo" },
   }
 
-  const { label, dot } = config[status as keyof typeof config] || config.activo
+  const { variant, label } = config[status as keyof typeof config] || config.activo
 
   return (
-    <div className="flex items-center gap-2">
-      <div className={`h-2 w-2 rounded-full ${dot}`} />
-      <span className="text-sm text-gray-700 font-medium">{label}</span>
-    </div>
+    <Badge variant={variant} className="font-medium">
+      {label}
+    </Badge>
   )
 }
 
@@ -208,8 +219,8 @@ export default function ClientesPage() {
           <div className="flex items-center gap-3">
             <ClientAvatar name={row.original.nombre} />
             <div className="flex flex-col">
-              <span className="font-semibold text-gray-900">{row.original.nombre}</span>
-              <span className="text-xs text-gray-500">{row.original.clave_cliente}</span>
+              <span className="font-semibold text-foreground">{row.original.nombre}</span>
+              <span className="text-xs text-muted-foreground">{row.original.clave_cliente}</span>
             </div>
           </div>
         ),
@@ -224,14 +235,14 @@ export default function ClientesPage() {
         header: "Clase",
         cell: ({ row }) => (
           <Badge
-            color={
+            variant={
               row.original.clasificacion === "A"
-                ? "blue"
+                ? "default"
                 : row.original.clasificacion === "B"
-                ? "indigo"
-                : "gray"
+                ? "secondary"
+                : "outline"
             }
-            className="!font-bold"
+            className="font-bold"
           >
             {row.original.clasificacion}
           </Badge>
@@ -241,7 +252,7 @@ export default function ClientesPage() {
         accessorKey: "total_ventas_periodo",
         header: "Ventas Actual",
         cell: ({ row }) => (
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold text-foreground">
             {formatCurrency(row.original.total_ventas_periodo)}
           </span>
         ),
@@ -250,7 +261,7 @@ export default function ClientesPage() {
         accessorKey: "total_ventas_anterior",
         header: "Ventas Anterior",
         cell: ({ row }) => (
-          <span className="text-gray-600">
+          <span className="text-muted-foreground">
             {formatCurrency(row.original.total_ventas_anterior)}
           </span>
         ),
@@ -259,7 +270,7 @@ export default function ClientesPage() {
         accessorKey: "total_unidades_periodo",
         header: "Unidades Actual",
         cell: ({ row }) => (
-          <span className="text-gray-700">
+          <span className="text-foreground">
             {row.original.total_unidades_periodo.toLocaleString("es-MX")}
           </span>
         ),
@@ -273,7 +284,7 @@ export default function ClientesPage() {
             ? row.original.total_unidades_periodo * (1 - row.original.variacion_unidades_pct / 100)
             : 0
           return (
-            <span className="text-gray-600">
+            <span className="text-muted-foreground">
               {Math.round(unidadesAnt).toLocaleString("es-MX")}
             </span>
           )
@@ -288,14 +299,15 @@ export default function ClientesPage() {
           return (
             <div className="flex items-center gap-1">
               {isPositive ? (
-                <ArrowUp className="h-3 w-3 text-emerald-600" />
+                <ArrowUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <ArrowDown className="h-3 w-3 text-red-600" />
+                <ArrowDown className="h-3 w-3 text-rose-600 dark:text-rose-400" />
               )}
               <span
-                className={`font-semibold ${
-                  isPositive ? "text-emerald-600" : "text-red-600"
-                }`}
+                className={cn(
+                  "font-semibold",
+                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                )}
               >
                 {Math.abs(variation).toFixed(1)}%
               </span>
@@ -306,27 +318,27 @@ export default function ClientesPage() {
       {
         accessorKey: "num_ordenes",
         header: "Órdenes",
-        cell: ({ row }) => <span className="text-gray-700">{row.original.num_ordenes}</span>,
+        cell: ({ row }) => <span className="text-foreground">{row.original.num_ordenes}</span>,
       },
       {
         accessorKey: "ticket_promedio",
         header: "Ticket Prom.",
         cell: ({ row }) => (
-          <span className="text-gray-700">{formatCurrency(row.original.ticket_promedio)}</span>
+          <span className="text-foreground">{formatCurrency(row.original.ticket_promedio)}</span>
         ),
       },
       {
         accessorKey: "ultima_compra",
         header: "Última Compra",
         cell: ({ row }) => {
-          if (!row.original.ultima_compra) return <span className="text-gray-400">-</span>
+          if (!row.original.ultima_compra) return <span className="text-muted-foreground/50">-</span>
           return (
             <div className="flex flex-col">
-              <span className="text-sm text-gray-900">
+              <span className="text-sm text-foreground">
                 {new Date(row.original.ultima_compra).toLocaleDateString("es-MX")}
               </span>
               {row.original.dias_desde_ultima_compra !== null && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   Hace {row.original.dias_desde_ultima_compra} días
                 </span>
               )}
@@ -340,7 +352,7 @@ export default function ClientesPage() {
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             <TrendIcon tendencia={row.original.tendencia} />
-            <span className="text-sm text-gray-600 capitalize">{row.original.tendencia}</span>
+            <span className="text-sm text-muted-foreground capitalize">{row.original.tendencia}</span>
           </div>
         ),
       },
@@ -348,7 +360,7 @@ export default function ClientesPage() {
         accessorKey: "lifetime_value",
         header: "LTV",
         cell: ({ row }) => (
-          <span className="font-semibold text-blue-600">
+          <span className="font-semibold text-primary">
             {formatCurrency(row.original.lifetime_value)}
           </span>
         ),
@@ -485,7 +497,7 @@ export default function ClientesPage() {
             transition={{ duration: 0.4, delay: 0, ease: [0.25, 0.4, 0.25, 1] }}
             whileHover={{ y: -2, transition: { duration: 0.2 } }}
           >
-            <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+            <Card className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
               <CardContent className="p-5 pb-0">
                 <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
                   Clientes Activos
@@ -549,7 +561,7 @@ export default function ClientesPage() {
                   </ChartContainer>
                 </div>
               </CardContent>
-            </ShadcnCard>
+            </Card>
           </motion.div>
 
           {/* Clientes Nuevos */}
@@ -559,7 +571,7 @@ export default function ClientesPage() {
             transition={{ duration: 0.4, delay: 0.05, ease: [0.25, 0.4, 0.25, 1] }}
             whileHover={{ y: -2, transition: { duration: 0.2 } }}
           >
-            <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+            <Card className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
               <CardContent className="p-5 pb-0">
                 <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
                   Clientes Nuevos
@@ -623,7 +635,7 @@ export default function ClientesPage() {
                   </ChartContainer>
                 </div>
               </CardContent>
-            </ShadcnCard>
+            </Card>
           </motion.div>
 
           {/* Clientes en Riesgo */}
@@ -633,7 +645,7 @@ export default function ClientesPage() {
             transition={{ duration: 0.4, delay: 0.1, ease: [0.25, 0.4, 0.25, 1] }}
             whileHover={{ y: -2, transition: { duration: 0.2 } }}
           >
-            <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+            <Card className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
               <CardContent className="p-5 pb-0">
                 <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
                   En Riesgo
@@ -672,7 +684,7 @@ export default function ClientesPage() {
                   </ChartContainer>
                 </div>
               </CardContent>
-            </ShadcnCard>
+            </Card>
           </motion.div>
 
           {/* Revenue Promedio */}
@@ -682,7 +694,7 @@ export default function ClientesPage() {
             transition={{ duration: 0.4, delay: 0.15, ease: [0.25, 0.4, 0.25, 1] }}
             whileHover={{ y: -2, transition: { duration: 0.2 } }}
           >
-            <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+            <Card className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
               <CardContent className="p-5 pb-0">
                 <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
                   Revenue Promedio
@@ -746,24 +758,24 @@ export default function ClientesPage() {
                   </ChartContainer>
                 </div>
               </CardContent>
-            </ShadcnCard>
+            </Card>
           </motion.div>
         </div>
 
         {/* Tabla */}
-        <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl overflow-hidden !p-0">
+        <Card className="border border-border/40 shadow-sm overflow-hidden">
           {/* Toolbar */}
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-4 border-b border-border/40">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               {/* Search */}
               <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
                   type="text"
                   placeholder="Buscar clientes..."
                   value={globalFilter ?? ""}
                   onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="pl-10 h-9 focus-visible:ring-primary/20"
                 />
               </div>
 
@@ -772,9 +784,10 @@ export default function ClientesPage() {
                 <Button
                   onClick={exportToCSV}
                   disabled={!clients || clients.length === 0}
-                  className="!bg-[#007BFF] hover:!bg-[#0056b3] !text-white"
-                  icon={Download}
+                  size="sm"
+                  className="gap-2"
                 >
+                  <Download className="h-4 w-4" />
                   Exportar CSV
                 </Button>
               </div>
@@ -786,81 +799,110 @@ export default function ClientesPage() {
             {clientsLoading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center space-y-3">
-                  <div className="animate-spin h-10 w-10 border-4 border-[#007BFF] border-t-transparent rounded-full mx-auto" />
-                  <p className="text-sm text-gray-500">Cargando clientes...</p>
+                  <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                  <p className="text-sm text-muted-foreground">Cargando clientes...</p>
                 </div>
               </div>
             ) : (
               <>
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                <Table>
+                  <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
+                      <TableRow key={headerGroup.id} className="hover:bg-transparent border-border/40">
                         {headerGroup.headers.map((header) => (
-                          <th
+                          <TableHead
                             key={header.id}
-                            className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                            className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors whitespace-nowrap"
                             onClick={header.column.getToggleSortingHandler()}
                           >
                             <div className="flex items-center gap-2">
                               {flexRender(header.column.columnDef.header, header.getContext())}
                               {header.column.getCanSort() && (
-                                <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                                <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
                               )}
                             </div>
-                          </th>
+                          </TableHead>
                         ))}
-                      </tr>
+                      </TableRow>
                     ))}
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {table.getRowModel().rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        onClick={() => setSelectedClientId(row.original.cliente_id)}
-                        className="hover:bg-blue-50 transition-colors cursor-pointer"
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  </TableHeader>
+                  <TableBody>
+                    {table.getRowModel().rows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={13} className="h-32 text-center text-muted-foreground">
+                          No se encontraron clientes
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          onClick={() => setSelectedClientId(row.original.cliente_id)}
+                          className="hover:bg-primary/5 transition-colors cursor-pointer border-border/40"
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="px-4 py-3 whitespace-nowrap">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
 
                 {/* Pagination */}
-                <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                  <div className="text-sm text-gray-700">
-                    Mostrando {table.getState().pagination.pageIndex * 25 + 1} a{" "}
-                    {Math.min(
-                      (table.getState().pagination.pageIndex + 1) * 25,
-                      table.getFilteredRowModel().rows.length
-                    )}{" "}
-                    de {table.getFilteredRowModel().rows.length} clientes
+                <div className="px-4 py-3 border-t border-border/40 flex items-center justify-between bg-muted/30">
+                  <div className="text-sm text-muted-foreground">
+                    Mostrando{" "}
+                    <span className="font-medium text-foreground">
+                      {table.getState().pagination.pageIndex * 25 + 1}
+                    </span>{" "}
+                    a{" "}
+                    <span className="font-medium text-foreground">
+                      {Math.min(
+                        (table.getState().pagination.pageIndex + 1) * 25,
+                        table.getFilteredRowModel().rows.length
+                      )}
+                    </span>{" "}
+                    de{" "}
+                    <span className="font-medium text-foreground">
+                      {table.getFilteredRowModel().rows.length}
+                    </span>{" "}
+                    clientes
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => table.previousPage()}
                       disabled={!table.getCanPreviousPage()}
-                      className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="h-8 w-8 p-0"
                     >
                       <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <button
+                    </Button>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {table.getState().pagination.pageIndex + 1}
+                      </span>
+                      <span>/</span>
+                      <span>{table.getPageCount()}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => table.nextPage()}
                       disabled={!table.getCanNextPage()}
-                      className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="h-8 w-8 p-0"
                     >
                       <ChevronRight className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </>
             )}
           </div>
-        </TremorCard>
+        </Card>
       </div>
 
       {/* Client Detail Modal */}

@@ -1,7 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Card, Title, Text, Metric, Badge, TabGroup, TabList, Tab, TabPanels, TabPanel } from "@tremor/react"
+import { motion } from "framer-motion"
+import { TabGroup, TabList, Tab, TabPanels, TabPanel, Title, Text, Badge, Card as TremorCard } from "@tremor/react"
+import { Card as ShadcnCard, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ChartConfig, ChartContainer } from "@/components/ui/chart"
+import { cn } from "@/lib/utils"
 import {
   AreaChart,
   Area,
@@ -71,6 +76,148 @@ function formatNumber(value: number): string {
 
 function formatPercent(value: number): string {
   return `${value.toFixed(2)}%`
+}
+
+// Chart config for sparklines
+const sparklineChartConfig = {
+  value: {
+    label: "Value",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
+
+// Generate sample sparkline data based on trend
+function generateSparklineData(trend: number, baseValue: number = 100): { value: number }[] {
+  const points = 12
+  const data: { value: number }[] = []
+  let current = baseValue * (1 - Math.abs(trend) / 100)
+
+  for (let i = 0; i < points; i++) {
+    const progress = i / (points - 1)
+    const noise = (Math.random() - 0.5) * baseValue * 0.15
+    const trendValue = trend >= 0
+      ? current + (baseValue - current) * progress
+      : baseValue - (baseValue - current) * progress
+    data.push({ value: Math.max(0, trendValue + noise) })
+  }
+
+  if (trend >= 0) {
+    data[data.length - 1] = { value: baseValue * 1.1 }
+  } else {
+    data[data.length - 1] = { value: baseValue * 0.85 }
+  }
+
+  return data
+}
+
+// KPI Card with Sparkline Component
+interface SparklineKPICardProps {
+  title: string
+  value: string | number
+  trend?: { value: number; isPositive: boolean; actualChange?: number }
+  subtitle?: string
+  loading?: boolean
+  delay?: number
+}
+
+function SparklineKPICard({
+  title,
+  value,
+  trend,
+  subtitle,
+  loading,
+  delay = 0,
+}: SparklineKPICardProps) {
+  const chartData = trend ? generateSparklineData(trend.actualChange ?? trend.value) : generateSparklineData(0)
+  const isPositive = trend ? trend.isPositive : true
+  const actualChange = trend?.actualChange ?? (trend?.isPositive ? trend?.value : -trend?.value)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: [0.25, 0.4, 0.25, 1] }}
+      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+    >
+      <ShadcnCard className="border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-card overflow-hidden">
+        <CardContent className="p-5 pb-0">
+          {/* Header */}
+          <p className="text-xs font-medium text-muted-foreground tracking-wide mb-1">
+            {title}
+          </p>
+
+          {/* Value */}
+          {loading ? (
+            <Skeleton className="h-6 w-24 mb-1" />
+          ) : (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: delay + 0.1, duration: 0.3 }}
+              className="text-lg font-bold text-foreground tracking-tight truncate"
+            >
+              {value}
+            </motion.p>
+          )}
+
+          {/* Trend */}
+          {trend ? (
+            <div className="flex items-center gap-1.5 mt-1">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 text-xs font-semibold flex-shrink-0",
+                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                )}
+              >
+                {(actualChange ?? 0) >= 0 ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                {(actualChange ?? 0) >= 0 ? "+" : ""}{(actualChange ?? 0).toFixed(1)}%
+              </span>
+              <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
+          )}
+
+          {/* Sparkline Chart */}
+          <div className="h-16 mt-3 -mx-5 -mb-1">
+            <ChartContainer config={sparklineChartConfig} className="h-full w-full">
+              <AreaChart
+                data={chartData}
+                margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id={`gradient-${title.replace(/\s/g, '')}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="0%"
+                      stopColor={isPositive ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={isPositive ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={isPositive ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"}
+                  strokeWidth={2}
+                  fill={`url(#gradient-${title.replace(/\s/g, '')})`}
+                  dot={false}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </div>
+        </CardContent>
+      </ShadcnCard>
+    </motion.div>
+  )
 }
 
 // Custom Tooltip para gráfica principal
@@ -178,181 +325,74 @@ export default function VentasPage() {
   })()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
+    <div className="min-h-screen">
       <div className="max-w-[1600px] mx-auto space-y-8">
-        {/* Header Moderno */}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-lg">
-                <AlertCircle className="h-5 w-5 text-white" />
-              </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Venta Perdida
-              </h1>
-            </div>
-            <p className="text-sm text-gray-600 flex items-center gap-2 ml-[52px]">
-              <Calendar className="h-4 w-4 text-red-500" />
-              Análisis detallado de <span className="font-semibold text-gray-900">oportunidades de mejora</span>
+        {/* Header - Estilo consistente */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+        >
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">
+              Venta Perdida
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Analisis detallado de oportunidades de mejora
             </p>
           </div>
-        </div>
+        </motion.div>
 
-        {/* KPI Cards - Diseño Ultra Moderno */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Ventas Perdidas */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Ventas Perdidas
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {loadingKPIs ? (
-                      <span className="inline-block h-6 w-32 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      <span className="block truncate">{formatCurrency(kpis?.total_ventas_perdidas || 0)}</span>
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
-                <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0 ${
-                    (kpis?.cambio_perdidas_pct || 0) >= 0
-                      ? "bg-red-100 text-red-700"
-                      : "bg-emerald-100 text-emerald-700"
-                  }`}
-                >
-                  {(kpis?.cambio_perdidas_pct || 0) >= 0 ? (
-                    <ArrowUp className="h-3 w-3" />
-                  ) : (
-                    <ArrowDown className="h-3 w-3" />
-                  )}
-                  {Math.abs(kpis?.cambio_perdidas_pct || 0).toFixed(1)}%
-                </div>
-                <Text className="!text-xs !text-gray-500 truncate">vs período anterior</Text>
-              </div>
-            </div>
-          </Card>
+        {/* KPI Cards Grid with Sparklines */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SparklineKPICard
+            title="Ventas Perdidas"
+            value={formatCurrency(kpis?.total_ventas_perdidas || 0)}
+            trend={{
+              value: Math.abs(kpis?.cambio_perdidas_pct || 0),
+              isPositive: (kpis?.cambio_perdidas_pct || 0) < 0
+            }}
+            subtitle="vs período anterior"
+            loading={loadingKPIs}
+            delay={0}
+          />
 
-          {/* Ventas Totales */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Ventas Totales
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {loadingKPIs ? (
-                      <span className="inline-block h-6 w-32 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      <span className="block truncate">{formatCurrency(kpis?.total_ventas || 0)}</span>
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <DollarSign className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
-                <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0 ${
-                    (kpis?.cambio_ventas_pct || 0) >= 0
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {(kpis?.cambio_ventas_pct || 0) >= 0 ? (
-                    <ArrowUp className="h-3 w-3" />
-                  ) : (
-                    <ArrowDown className="h-3 w-3" />
-                  )}
-                  {Math.abs(kpis?.cambio_ventas_pct || 0).toFixed(1)}%
-                </div>
-                <Text className="!text-xs !text-gray-500 truncate">vs período anterior</Text>
-              </div>
-            </div>
-          </Card>
+          <SparklineKPICard
+            title="Ventas Totales"
+            value={formatCurrency(kpis?.total_ventas || 0)}
+            trend={{
+              value: Math.abs(kpis?.cambio_ventas_pct || 0),
+              isPositive: (kpis?.cambio_ventas_pct || 0) >= 0
+            }}
+            subtitle="vs período anterior"
+            loading={loadingKPIs}
+            delay={0.05}
+          />
 
-          {/* Tasa de Cumplimiento */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Tasa Cumplimiento
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {loadingKPIs ? (
-                      <span className="inline-block h-6 w-20 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      formatPercent(kpis?.tasa_cumplimiento_promedio || 0)
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Percent className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
-                <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0 ${
-                    (kpis?.cambio_cumplimiento_pct || 0) >= 0
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {(kpis?.cambio_cumplimiento_pct || 0) >= 0 ? (
-                    <ArrowUp className="h-3 w-3" />
-                  ) : (
-                    <ArrowDown className="h-3 w-3" />
-                  )}
-                  {Math.abs(kpis?.cambio_cumplimiento_pct || 0).toFixed(1)} pts
-                </div>
-                <Text className="!text-xs !text-gray-500 truncate">vs período anterior</Text>
-              </div>
-            </div>
-          </Card>
+          <SparklineKPICard
+            title="Tasa Cumplimiento"
+            value={formatPercent(kpis?.tasa_cumplimiento_promedio || 0)}
+            trend={{
+              value: Math.abs(kpis?.cambio_cumplimiento_pct || 0),
+              isPositive: (kpis?.cambio_cumplimiento_pct || 0) >= 0
+            }}
+            subtitle="vs período anterior"
+            loading={loadingKPIs}
+            delay={0.1}
+          />
 
-          {/* Órdenes con Pérdidas */}
-          <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all duration-300 !rounded-2xl overflow-hidden group !p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Text className="!text-xs !font-medium !text-gray-500 uppercase tracking-wide truncate !mb-0">
-                    Órdenes Afectadas
-                  </Text>
-                  <Metric className="!text-lg !font-bold !text-gray-900 !mt-2 !mb-0">
-                    {loadingKPIs ? (
-                      <span className="inline-block h-6 w-20 bg-gray-200 animate-pulse rounded" />
-                    ) : (
-                      formatNumber(kpis?.ordenes_con_perdidas || 0)
-                    )}
-                  </Metric>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <ShoppingCart className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <Text className="!text-xs !text-gray-500 mt-auto pt-2 border-t border-gray-100 truncate">
-                {kpis && `${((kpis.ordenes_con_perdidas / kpis.numero_ordenes) * 100).toFixed(1)}% del total`}
-              </Text>
-            </div>
-          </Card>
+          <SparklineKPICard
+            title="Órdenes Afectadas"
+            value={formatNumber(kpis?.ordenes_con_perdidas || 0)}
+            subtitle={kpis ? `${((kpis.ordenes_con_perdidas / kpis.numero_ordenes) * 100).toFixed(1)}% del total` : ""}
+            loading={loadingKPIs}
+            delay={0.15}
+          />
         </div>
 
         {/* Gráfica Principal - Últimos 12 Meses */}
-        <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
+        <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
           <Title className="!text-xl !font-bold !text-gray-900 !mb-2">
             Desempeño de Ventas - Últimos 12 Meses
           </Title>
@@ -421,7 +461,7 @@ export default function VentasPage() {
               />
             </ComposedChart>
           </ResponsiveContainer>
-        </Card>
+        </TremorCard>
 
         {/* Tabs con análisis detallado */}
         <TabGroup index={selectedTab} onIndexChange={setSelectedTab}>
@@ -451,7 +491,7 @@ export default function VentasPage() {
             <TabPanel>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Productos */}
-                <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
+                <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
                   <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                     Top 10 Productos con Pérdidas
                   </Title>
@@ -490,10 +530,10 @@ export default function VentasPage() {
                       </div>
                     ))}
                   </div>
-                </Card>
+                </TremorCard>
 
                 {/* Top Clientes */}
-                <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
+                <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
                   <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                     Top 10 Clientes Afectados
                   </Title>
@@ -532,11 +572,11 @@ export default function VentasPage() {
                       </div>
                     ))}
                   </div>
-                </Card>
+                </TremorCard>
               </div>
 
               {/* Distribución por Categoría */}
-              <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6 mt-6">
+              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6 mt-6">
                 <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                   Distribución de Pérdidas por Categoría
                 </Title>
@@ -562,12 +602,12 @@ export default function VentasPage() {
                     <Tooltip formatter={(value: any) => formatCurrency(value)} />
                   </PieChart>
                 </ResponsiveContainer>
-              </Card>
+              </TremorCard>
             </TabPanel>
 
             {/* Tab 2: Transacciones */}
             <TabPanel>
-              <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
+              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
                 <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                   Órdenes con Pérdidas (Últimas 20)
                 </Title>
@@ -627,12 +667,12 @@ export default function VentasPage() {
                     </tbody>
                   </table>
                 </div>
-              </Card>
+              </TremorCard>
             </TabPanel>
 
             {/* Tab 3: Rentabilidad */}
             <TabPanel>
-              <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
+              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
                 <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                   Top 10 Productos por Margen Bruto
                 </Title>
@@ -716,12 +756,12 @@ export default function VentasPage() {
                     </tbody>
                   </table>
                 </div>
-              </Card>
+              </TremorCard>
             </TabPanel>
 
             {/* Tab 4: Cumplimiento */}
             <TabPanel>
-              <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
+              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
                 <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                   Distribución de Fill Rate
                 </Title>
@@ -757,11 +797,11 @@ export default function VentasPage() {
                     <Bar dataKey="Órdenes" fill="url(#colorOrdenes)" radius={[8, 8, 0, 0]} />
                   </RechartsBarChart>
                 </ResponsiveContainer>
-              </Card>
+              </TremorCard>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                 {cumplimientoResumen?.map((item, idx) => (
-                  <Card key={idx} className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all !rounded-2xl !p-5">
+                  <TremorCard key={idx} className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg hover:!shadow-xl transition-all !rounded-2xl !p-5">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <Text className="!text-sm !text-gray-500 !mb-1">Fill Rate</Text>
@@ -801,14 +841,14 @@ export default function VentasPage() {
                         </Text>
                       </div>
                     </div>
-                  </Card>
+                  </TremorCard>
                 ))}
               </div>
             </TabPanel>
 
             {/* Tab 5: Temporal */}
             <TabPanel>
-              <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6 mb-6">
+              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6 mb-6">
                 <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                   Ventas por Día de la Semana
                 </Title>
@@ -841,9 +881,9 @@ export default function VentasPage() {
                     <Bar dataKey="Ventas" fill="url(#colorVentasDia)" radius={[8, 8, 0, 0]} />
                   </RechartsBarChart>
                 </ResponsiveContainer>
-              </Card>
+              </TremorCard>
 
-              <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
+              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
                 <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                   Fill Rate por Día de la Semana
                 </Title>
@@ -878,12 +918,12 @@ export default function VentasPage() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
-              </Card>
+              </TremorCard>
             </TabPanel>
 
             {/* Tab 6: Descuentos */}
             <TabPanel>
-              <Card className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
+              <TremorCard className="!bg-white !border-0 !ring-1 !ring-gray-200 !shadow-lg !rounded-2xl !p-6">
                 <Title className="!text-lg !font-bold !text-gray-900 !mb-6">
                   Top 10 Clientes por Descuentos Aplicados
                 </Title>
@@ -943,7 +983,7 @@ export default function VentasPage() {
                     </div>
                   ))}
                 </div>
-              </Card>
+              </TremorCard>
             </TabPanel>
           </TabPanels>
         </TabGroup>

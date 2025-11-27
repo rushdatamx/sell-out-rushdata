@@ -5,14 +5,14 @@ import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Option {
-  id: number
+  id: number | string
   nombre: string
 }
 
 interface MultiSelectProps {
   options: Option[]
-  selected: number[]
-  onChange: (selected: number[]) => void
+  selected: (number | string)[]
+  onChange: (selected: (number | string)[]) => void
   placeholder?: string
   className?: string
 }
@@ -39,7 +39,7 @@ export function MultiSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const toggleOption = (id: number) => {
+  const toggleOption = (id: number | string) => {
     if (selected.includes(id)) {
       onChange(selected.filter((item) => item !== id))
     } else {
@@ -47,7 +47,7 @@ export function MultiSelect({
     }
   }
 
-  const removeOption = (id: number, e: React.MouseEvent) => {
+  const removeOption = (id: number | string, e: React.MouseEvent) => {
     e.stopPropagation()
     onChange(selected.filter((item) => item !== id))
   }

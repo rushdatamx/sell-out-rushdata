@@ -1,7 +1,19 @@
 "use client"
 
-import { X, Tag, Package, DollarSign, TrendingUp, Users, ShoppingCart, Calendar } from "lucide-react"
-import { Card, Metric, Text, Badge, BarChart } from "@tremor/react"
+import { Tag, Package, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ChartConfig, ChartContainer } from "@/components/ui/chart"
+import { Bar, BarChart, XAxis, YAxis, Tooltip } from "recharts"
+import { cn } from "@/lib/utils"
 import {
   useProductDetail,
   useProductSalesHistory,
@@ -26,11 +38,46 @@ function formatCurrency(value: number): string {
 function formatDate(date: string | null): string {
   if (!date) return "-"
   return new Date(date).toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+}
+
+function formatDateLong(date: string | null): string {
+  if (!date) return "-"
+  return new Date(date).toLocaleDateString("es-MX", {
     year: "numeric",
     month: "long",
     day: "numeric",
   })
 }
+
+// Notion-style property row
+function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start py-1.5 group">
+      <span className="w-32 flex-shrink-0 text-sm text-muted-foreground">{label}</span>
+      <div className="flex-1 text-sm text-foreground">{children}</div>
+    </div>
+  )
+}
+
+// Notion-style section header
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+      {children}
+    </h3>
+  )
+}
+
+const chartConfig = {
+  ventas: {
+    label: "Ventas",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
 
 export function ProductDetailModal({ tenantId, productoId, onClose }: ProductDetailModalProps) {
   const { data: product, isLoading } = useProductDetail(tenantId, productoId)
@@ -40,344 +87,309 @@ export function ProductDetailModal({ tenantId, productoId, onClose }: ProductDet
 
   if (!productoId) return null
 
-  const getStatusColor = (status: boolean) => {
-    return status ? "emerald" : "gray"
-  }
-
   // Prepare chart data
   const chartData =
     salesHistory?.map((item) => ({
-      mes: `${item.mes.substring(0, 3)} ${item.anio}`,
-      Ventas: item.total_ventas,
+      mes: `${item.mes.substring(0, 3)}`,
+      ventas: item.total_ventas,
     })) || []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-white flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            {isLoading ? (
-              <div className="h-8 w-64 bg-gray-200 animate-pulse rounded" />
-            ) : (
-              <>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-2xl font-bold text-gray-900 truncate">
-                    {product?.nombre}
-                  </h2>
-                  <p className="text-sm text-gray-500">{product?.sku}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge color="indigo">{product?.categoria}</Badge>
-                  <Badge color={getStatusColor(product?.activo || false)}>
-                    {product?.activo ? "Activo" : "Inactivo"}
-                  </Badge>
-                </div>
-              </>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="ml-4 p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+    <Dialog open={!!productoId} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        {/* Header - Notion style */}
+        <DialogHeader className="px-6 pt-6 pb-4 space-y-0">
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-32" />
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* KPIs Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <Text className="!text-xs !text-gray-500">Lifetime Value</Text>
-                      <Metric className="!text-lg !text-gray-900">
-                        {formatCurrency(product?.lifetime_value || 0)}
-                      </Metric>
-                    </div>
-                  </div>
-                </Card>
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <DialogTitle className="text-2xl font-semibold text-foreground tracking-tight">
+                  {product?.nombre}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground font-mono">
+                  {product?.sku}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="font-medium">
+                  {product?.categoria}
+                </Badge>
+                <Badge variant={product?.activo ? "success" : "secondary"}>
+                  {product?.activo ? "Activo" : "Inactivo"}
+                </Badge>
+              </div>
+            </div>
+          )}
+        </DialogHeader>
 
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                      <ShoppingCart className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <Text className="!text-xs !text-gray-500">Total Órdenes</Text>
-                      <Metric className="!text-lg !text-gray-900">
-                        {product?.total_ordenes || 0}
-                      </Metric>
-                    </div>
-                  </div>
-                </Card>
+        <Separator />
 
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <Text className="!text-xs !text-gray-500">Total Clientes</Text>
-                      <Metric className="!text-lg !text-gray-900">
-                        {product?.total_clientes || 0}
-                      </Metric>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <Text className="!text-xs !text-gray-500">Precio Venta</Text>
-                      <Metric className="!text-lg !text-gray-900">
-                        {formatCurrency(product?.precio_venta_sugerido || 0)}
-                      </Metric>
-                    </div>
-                  </div>
-                </Card>
+        {/* Content */}
+        <ScrollArea className="flex-1 max-h-[calc(90vh-120px)]">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : (
+            <div className="px-6 py-5 space-y-8">
+              {/* KPIs - Notion inline style */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Lifetime Value</p>
+                  <p className="text-xl font-semibold text-foreground">
+                    {formatCurrency(product?.lifetime_value || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Total Ordenes</p>
+                  <p className="text-xl font-semibold text-foreground">
+                    {product?.total_ordenes || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Total Clientes</p>
+                  <p className="text-xl font-semibold text-foreground">
+                    {product?.total_clientes || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Precio Venta</p>
+                  <p className="text-xl font-semibold text-foreground">
+                    {formatCurrency(product?.precio_venta_sugerido || 0)}
+                  </p>
+                </div>
               </div>
 
-              {/* Two Column Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Separator />
+
+              {/* Two columns layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Column */}
-                <div className="space-y-6">
-                  {/* Información General */}
-                  <Card>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Información General
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <Tag className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500">Clasificación</p>
-                          <p className="text-sm text-gray-900">
-                            {product?.categoria}
-                            {product?.subcategoria && ` • ${product.subcategoria}`}
-                          </p>
-                        </div>
-                      </div>
-
+                <div className="space-y-8">
+                  {/* Properties - Notion database style */}
+                  <div>
+                    <SectionHeader>Informacion</SectionHeader>
+                    <div className="space-y-0.5">
+                      <PropertyRow label="Categoria">
+                        <span className="flex items-center gap-1.5">
+                          <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                          {product?.categoria}
+                          {product?.subcategoria && ` / ${product.subcategoria}`}
+                        </span>
+                      </PropertyRow>
                       {product?.marca && (
-                        <div className="flex items-start gap-3">
-                          <Package className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500">Marca</p>
-                            <p className="text-sm text-gray-900">{product.marca}</p>
-                          </div>
-                        </div>
+                        <PropertyRow label="Marca">
+                          <span className="flex items-center gap-1.5">
+                            <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                            {product.marca}
+                          </span>
+                        </PropertyRow>
                       )}
-
                       {product?.linea_producto && (
-                        <div className="flex items-start gap-3">
-                          <Package className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500">Línea de Producto</p>
-                            <p className="text-sm text-gray-900">{product.linea_producto}</p>
-                          </div>
-                        </div>
+                        <PropertyRow label="Linea">
+                          {product.linea_producto}
+                        </PropertyRow>
                       )}
+                      <PropertyRow label="Unidad">
+                        {product?.unidad_medida || "-"}
+                      </PropertyRow>
+                      <PropertyRow label="Piezas/Caja">
+                        {product?.piezas_por_caja || "-"}
+                      </PropertyRow>
+                      <PropertyRow label="Peso">
+                        {product?.peso_kg ? `${product.peso_kg} kg` : "-"}
+                      </PropertyRow>
+                      <PropertyRow label="Codigo Barras">
+                        <span className="font-mono text-xs">
+                          {product?.codigo_barras || "-"}
+                        </span>
+                      </PropertyRow>
+                      <PropertyRow label="Ultima Venta">
+                        {formatDateLong(product?.ultima_venta || null)}
+                      </PropertyRow>
+                    </div>
+                  </div>
 
-                      {product?.descripcion && (
-                        <div className="pt-3 border-t border-gray-200">
-                          <p className="text-xs text-gray-500 mb-1">Descripción</p>
-                          <p className="text-sm text-gray-900">{product.descripcion}</p>
-                        </div>
-                      )}
-
-                      <div className="pt-3 border-t border-gray-200 grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-gray-500">Unidad</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {product?.unidad_medida || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Piezas/Caja</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {product?.piezas_por_caja || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Peso (kg)</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {product?.peso_kg || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Código Barras</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {product?.codigo_barras || "-"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="pt-3 border-t border-gray-200 grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-gray-500">Costo Producción</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {product?.costo_produccion
-                              ? formatCurrency(product.costo_produccion)
-                              : "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Margen Objetivo</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {product?.margen_objetivo ? `${product.margen_objetivo}%` : "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Días Producción</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {product?.dias_produccion
-                              ? `${product.dias_produccion} días`
-                              : "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Última Venta</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatDate(product?.ultima_venta || null)}
-                          </p>
-                        </div>
-                      </div>
-
+                  {/* Pricing - Notion style */}
+                  <div>
+                    <SectionHeader>Precios y Costos</SectionHeader>
+                    <div className="space-y-0.5">
+                      <PropertyRow label="Costo Produccion">
+                        {product?.costo_produccion
+                          ? formatCurrency(product.costo_produccion)
+                          : "-"}
+                      </PropertyRow>
+                      <PropertyRow label="Margen Objetivo">
+                        {product?.margen_objetivo ? `${product.margen_objetivo}%` : "-"}
+                      </PropertyRow>
+                      <PropertyRow label="Dias Produccion">
+                        {product?.dias_produccion
+                          ? `${product.dias_produccion} dias`
+                          : "-"}
+                      </PropertyRow>
                       {product?.perecedero && (
-                        <div className="pt-3 border-t border-gray-200">
+                        <PropertyRow label="Perecedero">
                           <div className="flex items-center gap-2">
-                            <Badge color="orange">Perecedero</Badge>
+                            <Badge variant="destructive" className="text-xs">
+                              Si
+                            </Badge>
                             {product?.dias_vida_util && (
-                              <span className="text-xs text-gray-600">
-                                Vida útil: {product.dias_vida_util} días
+                              <span className="text-xs text-muted-foreground">
+                                Vida util: {product.dias_vida_util} dias
                               </span>
                             )}
                           </div>
-                        </div>
+                        </PropertyRow>
                       )}
                     </div>
-                  </Card>
+                  </div>
 
-                  {/* Top Clientes */}
-                  <Card>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Top 5 Clientes
-                    </h3>
-                    <div className="space-y-3">
-                      {topClients && topClients.length > 0 ? (
-                        topClients.map((cliente) => (
+                  {/* Top Clients - Notion list style */}
+                  <div>
+                    <SectionHeader>Top Clientes</SectionHeader>
+                    {topClients && topClients.length > 0 ? (
+                      <div className="space-y-2">
+                        {topClients.map((cliente, idx) => (
                           <div
                             key={cliente.cliente_id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-md hover:bg-muted/50 transition-colors group"
                           >
+                            <span className="w-5 h-5 flex items-center justify-center text-xs font-medium text-muted-foreground bg-muted rounded">
+                              {idx + 1}
+                            </span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">
+                              <p className="text-sm font-medium text-foreground truncate">
                                 {cliente.nombre_cliente}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                {cliente.tipo_cliente} • {cliente.num_ordenes} órdenes
+                              <p className="text-xs text-muted-foreground">
+                                {cliente.tipo_cliente} · {cliente.num_ordenes} ordenes
                               </p>
                             </div>
-                            <div className="text-right ml-3 flex-shrink-0">
-                              <p className="text-sm font-bold text-indigo-600">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-primary">
                                 {formatCurrency(cliente.total_ventas)}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-muted-foreground">
                                 {cliente.porcentaje_ventas.toFixed(1)}%
                               </p>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          No hay clientes disponibles
-                        </p>
-                      )}
-                    </div>
-                  </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-4">
+                        No hay clientes disponibles
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-6">
-                  {/* Sales Chart */}
-                  <Card>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Historial de Ventas (últimos 6 meses)
-                    </h3>
+                <div className="space-y-8">
+                  {/* Sales Chart - Clean Notion style */}
+                  <div>
+                    <SectionHeader>Historial de Ventas</SectionHeader>
                     {chartData.length > 0 ? (
-                      <BarChart
-                        data={chartData}
-                        index="mes"
-                        categories={["Ventas"]}
-                        colors={["indigo"]}
-                        valueFormatter={formatCurrency}
-                        yAxisWidth={80}
-                        className="h-64"
-                      />
+                      <div className="h-48">
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                          <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                            <XAxis
+                              dataKey="mes"
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            />
+                            <YAxis
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                              width={50}
+                            />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="bg-popover border border-border rounded-md shadow-md px-3 py-2">
+                                      <p className="text-sm font-medium text-foreground">
+                                        {formatCurrency(payload[0].value as number)}
+                                      </p>
+                                    </div>
+                                  )
+                                }
+                                return null
+                              }}
+                            />
+                            <Bar
+                              dataKey="ventas"
+                              fill="hsl(var(--primary))"
+                              radius={[4, 4, 0, 0]}
+                            />
+                          </BarChart>
+                        </ChartContainer>
+                      </div>
                     ) : (
-                      <p className="text-sm text-gray-500 text-center py-8">
+                      <p className="text-sm text-muted-foreground py-8 text-center">
                         No hay datos de ventas disponibles
                       </p>
                     )}
-                  </Card>
+                  </div>
 
-                  {/* Recent Orders */}
-                  <Card>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Órdenes Recientes
-                    </h3>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {recentOrders && recentOrders.length > 0 ? (
-                        recentOrders.map((order, idx) => (
+                  {/* Description if exists */}
+                  {product?.descripcion && (
+                    <div>
+                      <SectionHeader>Descripcion</SectionHeader>
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {product.descripcion}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Recent Orders - Notion table style */}
+                  <div>
+                    <SectionHeader>Ordenes Recientes</SectionHeader>
+                    {recentOrders && recentOrders.length > 0 ? (
+                      <div className="space-y-1">
+                        {recentOrders.slice(0, 8).map((order, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                            className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-md hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900">
+                              <p className="text-sm font-medium text-foreground font-mono">
                                 {order.numero_orden}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                {formatDate(order.fecha)} • {order.cliente_nombre}
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(order.fecha)} · {order.cliente_nombre}
                               </p>
                             </div>
-                            <div className="text-right ml-3 flex-shrink-0">
-                              <p className="text-sm font-bold text-gray-900">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-foreground">
                                 {formatCurrency(order.total_ventas)}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-muted-foreground">
                                 {Math.round(order.unidades)} unidades
                               </p>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          No hay órdenes disponibles
-                        </p>
-                      )}
-                    </div>
-                  </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-4">
+                        No hay ordenes disponibles
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   )
 }
