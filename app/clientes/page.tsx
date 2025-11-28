@@ -466,14 +466,14 @@ export default function ClientesPage() {
           <MultiSelect
             options={clientesOptions || []}
             selected={tempClienteIds}
-            onChange={setTempClienteIds}
+            onChange={(selected) => setTempClienteIds(selected.filter((id): id is number => typeof id === 'number'))}
             placeholder="Clientes"
           />
 
           <MultiSelect
             options={productosOptions || []}
             selected={tempProductoIds}
-            onChange={setTempProductoIds}
+            onChange={(selected) => setTempProductoIds(selected.filter((id): id is number => typeof id === 'number'))}
             placeholder="Productos"
           />
 

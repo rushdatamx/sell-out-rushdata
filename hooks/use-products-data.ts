@@ -78,8 +78,8 @@ export function useProductsKPIs(
     queryFn: async (): Promise<ProductKPIs> => {
       const { data, error } = await supabase.rpc("get_products_page_kpis", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: fechaInicio || null,
-        p_fecha_fin: fechaFin || null,
+        p_fecha_inicio: fechaInicio,
+        p_fecha_fin: fechaFin,
       })
 
       if (error) {
@@ -103,11 +103,11 @@ export function useProductsList(tenantId: string, filters: ProductsFilters = {})
     queryFn: async (): Promise<Product[]> => {
       const { data, error } = await supabase.rpc("get_products_page_list", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: filters.fechaInicio || null,
-        p_fecha_fin: filters.fechaFin || null,
-        p_cliente_ids: filters.clienteIds || null,
-        p_categoria: filters.categoria || null,
-        p_search: filters.search || null,
+        p_fecha_inicio: filters.fechaInicio,
+        p_fecha_fin: filters.fechaFin,
+        p_cliente_ids: filters.clienteIds,
+        p_categoria: filters.categoria,
+        p_search: filters.search,
       })
 
       if (error) {
@@ -142,8 +142,8 @@ export function useCategoriasOptions(tenantId: string) {
         throw error
       }
 
-      // Get unique categories
-      const uniqueCategories = [...new Set(data.map((p) => p.categoria))]
+      // Get unique categories, filter out nulls
+      const uniqueCategories = [...new Set(data.map((p) => p.categoria).filter((cat): cat is string => cat !== null))]
       return uniqueCategories.map((cat) => ({ id: cat, nombre: cat }))
     },
     staleTime: 1000 * 60 * 10, // 10 minutes

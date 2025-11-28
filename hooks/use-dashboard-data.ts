@@ -113,7 +113,7 @@ export function useKPIs(tenantId: string, days = 30) {
         throw error
       }
 
-      return data as KPIData
+      return data as unknown as KPIData
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
     retry: 2,
@@ -169,7 +169,7 @@ export function useTopProducts(tenantId: string, limit = 5, days = 30) {
         throw error
       }
 
-      return (data as TopProduct[]) || []
+      return (data as unknown as TopProduct[]) || []
     },
     staleTime: 1000 * 60 * 10, // 10 minutos
     retry: 2,
@@ -196,7 +196,7 @@ export function useTopClients(tenantId: string, limit = 5, days = 30) {
         throw error
       }
 
-      return (data as TopClient[]) || []
+      return (data as unknown as TopClient[]) || []
     },
     staleTime: 1000 * 60 * 10, // 10 minutos
     retry: 2,
@@ -223,7 +223,7 @@ export function useAlerts(tenantId: string, limit = 10, days = 30) {
         throw error
       }
 
-      return (data as Alert[]) || []
+      return (data as unknown as Alert[]) || []
     },
     staleTime: 1000 * 60 * 15, // 15 minutos
     retry: 2,
@@ -246,7 +246,7 @@ export function useInventoryStatus(tenantId: string) {
         throw error
       }
 
-      return (data as InventoryStatus[]) || []
+      return (data as unknown as InventoryStatus[]) || []
     },
     staleTime: 1000 * 60 * 15, // 15 minutos
     retry: 2,

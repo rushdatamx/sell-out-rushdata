@@ -126,8 +126,8 @@ export function useVentasKPIs(
     queryFn: async (): Promise<VentasKPIs | null> => {
       const { data, error } = await supabase.rpc("get_ventas_page_kpis", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: fechaInicio || null,
-        p_fecha_fin: fechaFin || null,
+        p_fecha_inicio: fechaInicio,
+        p_fecha_fin: fechaFin,
       })
 
       if (error) {
@@ -153,8 +153,8 @@ export function useVentasPerdidasAnalysis(
     queryFn: async (): Promise<VentaPerdidaAnalysis[]> => {
       const { data, error } = await supabase.rpc("get_ventas_perdidas_analysis", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: fechaInicio || null,
-        p_fecha_fin: fechaFin || null,
+        p_fecha_inicio: fechaInicio,
+        p_fecha_fin: fechaFin,
         p_dimension: dimension,
         p_limit: limit,
       })
@@ -192,16 +192,16 @@ export function useVentasList(
     queryFn: async (): Promise<VentaTransaccion[]> => {
       const { data, error } = await supabase.rpc("get_ventas_list", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: filters.fechaInicio || null,
-        p_fecha_fin: filters.fechaFin || null,
-        p_cliente_id: filters.clienteId || null,
-        p_producto_id: filters.productoId || null,
-        p_categoria: filters.categoria || null,
-        p_estado: filters.estado || null,
+        p_fecha_inicio: filters.fechaInicio,
+        p_fecha_fin: filters.fechaFin,
+        p_cliente_id: filters.clienteId,
+        p_producto_id: filters.productoId,
+        p_categoria: filters.categoria,
+        p_estado: filters.estado,
         p_solo_con_perdidas: filters.soloConPerdidas || false,
-        p_min_fill_rate: filters.minFillRate || null,
-        p_max_fill_rate: filters.maxFillRate || null,
-        p_search: filters.search || null,
+        p_min_fill_rate: filters.minFillRate,
+        p_max_fill_rate: filters.maxFillRate,
+        p_search: filters.search,
         p_limit: filters.limit || 100,
         p_offset: filters.offset || 0,
       })
@@ -229,8 +229,8 @@ export function useVentasRentabilidad(
     queryFn: async (): Promise<VentaRentabilidad[]> => {
       const { data, error } = await supabase.rpc("get_ventas_rentabilidad", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: fechaInicio || null,
-        p_fecha_fin: fechaFin || null,
+        p_fecha_inicio: fechaInicio,
+        p_fecha_fin: fechaFin,
         p_dimension: dimension,
         p_limit: limit,
       })
@@ -258,8 +258,8 @@ export function useVentasCumplimiento(
     queryFn: async (): Promise<VentaCumplimiento[]> => {
       const { data, error } = await supabase.rpc("get_ventas_cumplimiento", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: fechaInicio || null,
-        p_fecha_fin: fechaFin || null,
+        p_fecha_inicio: fechaInicio,
+        p_fecha_fin: fechaFin,
         p_dimension: dimension,
         p_limit: limit,
       })
@@ -286,8 +286,8 @@ export function useVentasTemporal(
     queryFn: async (): Promise<VentaTemporal[]> => {
       const { data, error } = await supabase.rpc("get_ventas_temporal", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: fechaInicio || null,
-        p_fecha_fin: fechaFin || null,
+        p_fecha_inicio: fechaInicio,
+        p_fecha_fin: fechaFin,
         p_agrupacion: agrupacion,
       })
 
@@ -314,8 +314,8 @@ export function useVentasDescuentos(
     queryFn: async (): Promise<VentaDescuento[]> => {
       const { data, error } = await supabase.rpc("get_ventas_descuentos", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: fechaInicio || null,
-        p_fecha_fin: fechaFin || null,
+        p_fecha_inicio: fechaInicio,
+        p_fecha_fin: fechaFin,
         p_dimension: dimension,
         p_limit: limit,
       })

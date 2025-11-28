@@ -79,8 +79,8 @@ export function useClientsKPIs(
     queryFn: async (): Promise<ClientKPIs> => {
       const { data, error } = await supabase.rpc("get_clients_page_kpis", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: fechaInicio || null,
-        p_fecha_fin: fechaFin || null,
+        p_fecha_inicio: fechaInicio,
+        p_fecha_fin: fechaFin,
       })
 
       if (error) {
@@ -104,11 +104,11 @@ export function useClientsList(tenantId: string, filters: ClientsFilters = {}) {
     queryFn: async (): Promise<Client[]> => {
       const { data, error } = await supabase.rpc("get_clients_page_list", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: filters.fechaInicio || null,
-        p_fecha_fin: filters.fechaFin || null,
-        p_producto_ids: filters.productoIds || null,
-        p_cliente_ids: filters.clienteIds || null,
-        p_search: filters.search || null,
+        p_fecha_inicio: filters.fechaInicio,
+        p_fecha_fin: filters.fechaFin,
+        p_producto_ids: filters.productoIds,
+        p_cliente_ids: filters.clienteIds,
+        p_search: filters.search,
       })
 
       if (error) {
