@@ -102,13 +102,14 @@ export function useClientsList(tenantId: string, filters: ClientsFilters = {}) {
   return useQuery({
     queryKey: ["clients-list", tenantId, filters],
     queryFn: async (): Promise<Client[]> => {
-      const { data, error } = await supabase.rpc("get_clients_page_list", {
+      // Use type assertion to bypass TypeScript overload resolution issues
+      const { data, error } = await (supabase.rpc as any)("get_clients_page_list", {
         p_tenant_id: tenantId,
-        p_fecha_inicio: filters.fechaInicio,
-        p_fecha_fin: filters.fechaFin,
-        p_producto_ids: filters.productoIds,
-        p_cliente_ids: filters.clienteIds,
-        p_search: filters.search,
+        p_fecha_inicio: filters.fechaInicio || null,
+        p_fecha_fin: filters.fechaFin || null,
+        p_producto_ids: filters.productoIds || null,
+        p_cliente_ids: filters.clienteIds || null,
+        p_search: filters.search || null,
       })
 
       if (error) {
