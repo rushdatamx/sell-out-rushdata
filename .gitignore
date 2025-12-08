@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE/Editor
+.cursor/
+.vscode/
+
+# MCP config (contains local paths)
+.mcp.json
+
+# Temporary/generated files
+next
+sellout-rushdata@*
