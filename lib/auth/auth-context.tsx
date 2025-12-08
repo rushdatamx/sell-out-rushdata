@@ -86,7 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
     setSession(null)
     setUser(null)
-    router.push("/login")
+
+    // CRÍTICO: Recargar la página para limpiar TODO el caché y evitar fuga de datos entre tenants
+    window.location.href = "/login"
   }
 
   const value = {

@@ -1,11 +1,41 @@
 import { createClient } from "@supabase/supabase-js"
 import Anthropic from "@anthropic-ai/sdk"
+import { cookies } from "next/headers"
 
 export const runtime = "edge"
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
+
+// Función para obtener el tenant_id del usuario autenticado
+async function getUserTenantId(supabase: any, authHeader: string | null): Promise<string | null> {
+  if (!authHeader) return null
+
+  try {
+    // Extraer el token del header
+    const token = authHeader.replace("Bearer ", "")
+
+    // Verificar el usuario con el token
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+
+    if (error || !user) return null
+
+    // Obtener el tenant_id del usuario
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single()
+
+    if (userError || !userData) return null
+
+    return userData.tenant_id
+  } catch (e) {
+    console.error("Error getting tenant_id:", e)
+    return null
+  }
+}
 
 const SYSTEM_PROMPT = `Eres el asistente de IA de RushData, especializado en análisis de sell-out retail para fabricantes de consumo masivo.
 
@@ -41,7 +71,7 @@ CONTEXTO DEL NEGOCIO:
 
 export async function POST(request: Request) {
   try {
-    const { message, conversationId, history = [] } = await request.json()
+    const { message, conversationId, history = [], tenantId } = await request.json()
 
     if (!message) {
       return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -56,10 +86,38 @@ export async function POST(request: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { data: contextData, error: contextError } = await supabase.rpc("get_ia_context")
+    // Obtener tenant_id: primero del body, luego del header de auth
+    let effectiveTenantId = tenantId
+    console.log("[IA Chat] tenantId from body:", tenantId)
+
+    if (!effectiveTenantId) {
+      const authHeader = request.headers.get("authorization")
+      effectiveTenantId = await getUserTenantId(supabase, authHeader)
+      console.log("[IA Chat] tenantId from auth:", effectiveTenantId)
+    }
+
+    // Usar la función específica para API que acepta tenant_id
+    let contextData = null
+    let contextError = null
+
+    console.log("[IA Chat] Using effectiveTenantId:", effectiveTenantId)
+
+    if (effectiveTenantId) {
+      console.log("[IA Chat] Calling get_ia_context_for_tenant...")
+      const result = await supabase.rpc("get_ia_context_for_tenant", { p_tenant_id: effectiveTenantId })
+      contextData = result.data
+      contextError = result.error
+      console.log("[IA Chat] Context result:", contextData ? "Has data" : "No data", contextError ? `Error: ${contextError.message}` : "No error")
+    } else {
+      // Fallback: intentar con la función original (solo funcionará si hay usuario autenticado)
+      console.log("[IA Chat] No tenantId, falling back to get_ia_context...")
+      const result = await supabase.rpc("get_ia_context")
+      contextData = result.data
+      contextError = result.error
+    }
 
     if (contextError) {
-      console.error("Error getting context:", contextError)
+      console.error("[IA Chat] Error getting context:", contextError)
     }
 
     // Construir el contexto para Claude

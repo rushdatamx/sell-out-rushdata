@@ -9,7 +9,6 @@ import {
   BarChart3,
   AlertTriangle,
   Percent,
-  Settings,
   Store,
   Moon,
   Sun,
@@ -71,11 +70,6 @@ const navItems = [
     title: "Análisis",
     url: "/analisis",
     icon: LineChart,
-  },
-  {
-    title: "Configuración",
-    url: "/configuracion",
-    icon: Settings,
   },
   {
     title: "IA RushData",

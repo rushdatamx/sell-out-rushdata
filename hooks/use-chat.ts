@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/lib/auth/auth-context"
 
@@ -25,7 +25,26 @@ export function useChat(options: UseChatOptions = {}) {
   const [conversationId, setConversationId] = useState<string | null>(
     options.conversationId || null
   )
+  const [tenantId, setTenantId] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Obtener tenant_id del usuario al cargar
+  useEffect(() => {
+    async function fetchTenantId() {
+      if (user) {
+        const { data: userData } = await (supabase
+          .from("users") as any)
+          .select("tenant_id")
+          .eq("id", user.id)
+          .single()
+
+        if (userData) {
+          setTenantId(userData.tenant_id)
+        }
+      }
+    }
+    fetchTenantId()
+  }, [user])
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -76,6 +95,7 @@ export function useChat(options: UseChatOptions = {}) {
             message: content.trim(),
             conversationId,
             history,
+            tenantId,  // Enviar tenant_id para contexto de IA
           }),
           signal: abortControllerRef.current.signal,
         })
@@ -174,7 +194,7 @@ export function useChat(options: UseChatOptions = {}) {
         abortControllerRef.current = null
       }
     },
-    [isLoading, messages, conversationId, user, options]
+    [isLoading, messages, conversationId, user, options, tenantId]
   )
 
   const saveToDatabase = async (
