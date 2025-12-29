@@ -10,6 +10,7 @@ interface ReabastecimientoFillRateChartProps {
   fechaInicio?: string | null
   fechaFin?: string | null
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -23,12 +24,14 @@ export function ReabastecimientoFillRateChart({
   fechaInicio,
   fechaFin,
   ciudades,
+  retailerId,
 }: ReabastecimientoFillRateChartProps) {
   const { data: productos, isLoading } = useReabastecimientoFillRate(
     fechaInicio,
     fechaFin,
     ciudades,
-    12
+    12,
+    retailerId
   )
 
   const chartData = productos?.map((item) => ({

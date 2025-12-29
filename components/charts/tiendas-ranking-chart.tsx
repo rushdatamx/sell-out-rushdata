@@ -21,6 +21,7 @@ interface TiendasRankingChartProps {
   categorias?: string[] | null
   productoIds?: number[] | null
   tipo?: "top" | "bottom"
+  retailerId?: number | null
 }
 
 export function TiendasRankingChart({
@@ -31,6 +32,7 @@ export function TiendasRankingChart({
   categorias,
   productoIds,
   tipo = "top",
+  retailerId,
 }: TiendasRankingChartProps) {
   const { data, isLoading } = useTiendasRanking(
     fechaInicio,
@@ -40,7 +42,8 @@ export function TiendasRankingChart({
     categorias,
     productoIds,
     tipo,
-    10
+    10,
+    retailerId
   )
 
   const chartData = data?.map((item) => ({

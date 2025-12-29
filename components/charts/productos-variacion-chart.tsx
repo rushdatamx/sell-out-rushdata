@@ -13,6 +13,7 @@ interface ProductosVariacionChartProps {
   categorias?: string[] | null
   tiendaIds?: number[] | null
   productoIds?: number[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -21,8 +22,8 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ProductosVariacionChart({ fechaInicio, fechaFin, tipo, categorias, tiendaIds, productoIds }: ProductosVariacionChartProps) {
-  const { data: variaciones, isLoading } = useProductosVariacion(fechaInicio, fechaFin, tipo, categorias, tiendaIds, productoIds)
+export function ProductosVariacionChart({ fechaInicio, fechaFin, tipo, categorias, tiendaIds, productoIds, retailerId }: ProductosVariacionChartProps) {
+  const { data: variaciones, isLoading } = useProductosVariacion(fechaInicio, fechaFin, tipo, categorias, tiendaIds, productoIds, retailerId)
 
   const titulo = tipo === "crecimiento" ? "Top 10 Mayor Crecimiento" : "Top 10 Mayor Caída"
   const descripcion = tipo === "crecimiento"
@@ -55,17 +56,43 @@ export function ProductosVariacionChart({ fechaInicio, fechaFin, tipo, categoria
     )
   }
 
-  const chartData = variaciones?.slice(0, 10).map(item => ({
-    nombre: item.nombre.length > 20 ? item.nombre.substring(0, 20) + "..." : item.nombre,
-    nombreCompleto: item.nombre,
-    variacion: item.variacion,
-    ventas_actual: item.ventas_actual,
-    ventas_anterior: item.ventas_anterior,
-  })) || []
+  const chartData = (variaciones || []).slice(0, 10).map(item => ({
+    nombre: (item.nombre?.length || 0) > 20 ? item.nombre.substring(0, 20) + "..." : item.nombre || "",
+    nombreCompleto: item.nombre || "",
+    variacion: item.variacion || 0,
+    ventas_actual: item.ventas_actual || 0,
+    ventas_anterior: item.ventas_anterior || 0,
+  }))
 
   // Para caídas, mostrar en orden inverso (más negativo primero)
   if (tipo === "caida") {
     chartData.reverse()
+  }
+
+  // Si no hay datos, mostrar mensaje
+  if (chartData.length === 0) {
+    return (
+      <Card className="rounded-2xl hover-lift">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
+            <Icon className={`h-5 w-5 ${tipo === "crecimiento" ? "text-green-500" : "text-red-500"}`} />
+            {titulo}
+          </CardTitle>
+          <CardDescription>{descripcion}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[200px] flex flex-col items-center justify-center text-center">
+            <Icon className={`h-10 w-10 mb-3 ${tipo === "crecimiento" ? "text-green-200" : "text-red-200"}`} />
+            <p className="text-sm text-muted-foreground">
+              No hay datos comparativos disponibles
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Se requieren datos del período anterior para calcular variaciones
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

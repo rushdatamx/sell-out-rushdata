@@ -11,6 +11,7 @@ interface ReabastecimientoABCChartProps {
   fechaInicio?: string | null
   fechaFin?: string | null
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -28,11 +29,13 @@ export function ReabastecimientoABCChart({
   fechaInicio,
   fechaFin,
   ciudades,
+  retailerId,
 }: ReabastecimientoABCChartProps) {
   const { data: productos, isLoading } = useReabastecimientoABC(
     fechaInicio,
     fechaFin,
-    ciudades
+    ciudades,
+    retailerId
   )
 
   const chartData = productos?.map((item) => ({

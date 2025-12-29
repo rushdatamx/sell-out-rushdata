@@ -15,10 +15,11 @@ const chartConfig = {
 
 interface TopProductosChartProps {
   dias?: number
+  retailerId?: number | null
 }
 
-export function TopProductosChart({ dias = 30 }: TopProductosChartProps) {
-  const { data: productos, isLoading } = useTopProductos(dias)
+export function TopProductosChart({ dias = 30, retailerId }: TopProductosChartProps) {
+  const { data: productos, isLoading } = useTopProductos(dias, retailerId)
 
   if (isLoading) {
     return (
@@ -39,13 +40,16 @@ export function TopProductosChart({ dias = 30 }: TopProductosChartProps) {
     )
   }
 
-  const chartData = productos?.map(p => ({
-    nombre: p.nombre.length > 20 ? p.nombre.substring(0, 20) + '...' : p.nombre,
-    nombreCompleto: p.nombre,
-    ventas: p.ventas,
-    unidades: p.unidades,
-    categoria: p.categoria,
-  })) || []
+  const chartData = productos?.map(p => {
+    const nombre = p.nombre || 'Sin nombre'
+    return {
+      nombre: nombre.length > 20 ? nombre.substring(0, 20) + '...' : nombre,
+      nombreCompleto: nombre,
+      ventas: p.ventas || 0,
+      unidades: p.unidades || 0,
+      categoria: p.categoria || 'Sin categoría',
+    }
+  }) || []
 
   const maxVentas = Math.max(...chartData.map(d => d.ventas), 0)
 

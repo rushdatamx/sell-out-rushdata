@@ -15,6 +15,8 @@ export interface Producto {
   precio_promedio: number
   participacion: number
   variacion: number
+  ventas_anterior: number
+  unidades_anterior: number
   num_tiendas: number
 }
 
@@ -76,11 +78,13 @@ export interface VariacionItem {
 }
 
 // Hook para obtener filtros disponibles
-export function useProductosFiltros() {
+export function useProductosFiltros(retailerId?: number | null) {
   return useQuery<ProductosFiltros>({
-    queryKey: ["productos-filtros"],
+    queryKey: ["productos-filtros", retailerId],
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_productos_filtros")
+      const { data, error } = await (supabase.rpc as any)("get_productos_filtros", {
+        p_retailer_id: retailerId || null,
+      })
       if (error) throw error
       return data as ProductosFiltros
     },
@@ -93,10 +97,11 @@ export function useProductosKpis(
   fechaFin?: string | null,
   categorias?: string[] | null,
   tiendaIds?: number[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<ProductosKpis>({
-    queryKey: ["productos-kpis-v3", fechaInicio, fechaFin, categorias, tiendaIds, productoIds],
+    queryKey: ["productos-kpis-v3", fechaInicio, fechaFin, categorias, tiendaIds, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_productos_kpis_v3", {
         p_fecha_inicio: fechaInicio || null,
@@ -104,6 +109,7 @@ export function useProductosKpis(
         p_categorias: categorias?.length ? categorias : null,
         p_tienda_ids: tiendaIds?.length ? tiendaIds : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as ProductosKpis
@@ -122,10 +128,11 @@ export function useProductosTabla(
   limit: number = 50,
   offset: number = 0,
   orderBy: string = "ventas",
-  orderDir: string = "desc"
+  orderDir: string = "desc",
+  retailerId?: number | null
 ) {
   return useQuery<ProductosTablaResponse>({
-    queryKey: ["productos-tabla-v3", fechaInicio, fechaFin, categorias, tiendaIds, productoIds, busqueda, limit, offset, orderBy, orderDir],
+    queryKey: ["productos-tabla-v3", fechaInicio, fechaFin, categorias, tiendaIds, productoIds, busqueda, limit, offset, orderBy, orderDir, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_productos_tabla_v3", {
         p_fecha_inicio: fechaInicio || null,
@@ -138,6 +145,7 @@ export function useProductosTabla(
         p_offset: offset,
         p_order_by: orderBy,
         p_order_dir: orderDir,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as ProductosTablaResponse
@@ -151,10 +159,11 @@ export function useProductosPareto(
   fechaFin?: string | null,
   categorias?: string[] | null,
   tiendaIds?: number[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<ParetoResponse>({
-    queryKey: ["productos-pareto-v3", fechaInicio, fechaFin, categorias, tiendaIds, productoIds],
+    queryKey: ["productos-pareto-v3", fechaInicio, fechaFin, categorias, tiendaIds, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_productos_pareto_v3", {
         p_fecha_inicio: fechaInicio || null,
@@ -162,6 +171,7 @@ export function useProductosPareto(
         p_categorias: categorias?.length ? categorias : null,
         p_tienda_ids: tiendaIds?.length ? tiendaIds : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as ParetoResponse
@@ -176,10 +186,11 @@ export function useProductosVariacion(
   tipo: "crecimiento" | "caida" = "crecimiento",
   categorias?: string[] | null,
   tiendaIds?: number[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<VariacionItem[]>({
-    queryKey: ["productos-variacion-v3", fechaInicio, fechaFin, tipo, categorias, tiendaIds, productoIds],
+    queryKey: ["productos-variacion-v3", fechaInicio, fechaFin, tipo, categorias, tiendaIds, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_productos_variacion_v3", {
         p_fecha_inicio: fechaInicio || null,
@@ -188,6 +199,7 @@ export function useProductosVariacion(
         p_tienda_ids: tiendaIds?.length ? tiendaIds : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
         p_tipo: tipo,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as VariacionItem[]

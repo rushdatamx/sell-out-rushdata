@@ -10,6 +10,7 @@ interface PreciosDispersionChartProps {
   fechaInicio?: string | null
   fechaFin?: string | null
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -23,11 +24,13 @@ export function PreciosDispersionChart({
   fechaInicio,
   fechaFin,
   ciudades,
+  retailerId,
 }: PreciosDispersionChartProps) {
   const { data: productos, isLoading } = usePreciosDispersion(
     fechaInicio,
     fechaFin,
-    ciudades
+    ciudades,
+    retailerId
   )
 
   const chartData = productos?.map((item) => ({

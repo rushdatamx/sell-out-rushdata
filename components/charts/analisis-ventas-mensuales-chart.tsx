@@ -10,6 +10,7 @@ interface AnalisisVentasMensualesChartProps {
   anio: number
   ciudades?: string[] | null
   productoIds?: number[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -27,19 +28,21 @@ export function AnalisisVentasMensualesChart({
   anio,
   ciudades,
   productoIds,
+  retailerId,
 }: AnalisisVentasMensualesChartProps) {
   const { data: ventas, isLoading } = useAnalisisVentasMensualesYoY(
     anio,
     ciudades,
-    productoIds
+    productoIds,
+    retailerId
   )
 
-  const chartData = ventas?.map((item) => ({
-    mes: item.mes_nombre,
-    venta_actual: item.venta_actual,
-    venta_anterior: item.venta_anterior,
-    cambio_pct: item.cambio_pct,
-  })) || []
+  const chartData = (ventas || []).map((item) => ({
+    mes: item.mes_nombre || "",
+    venta_actual: item.venta_actual || 0,
+    venta_anterior: item.venta_anterior || 0,
+    cambio_pct: item.cambio_pct || 0,
+  }))
 
   const totalActual = chartData.reduce((sum, item) => sum + item.venta_actual, 0)
   const totalAnterior = chartData.reduce((sum, item) => sum + item.venta_anterior, 0)

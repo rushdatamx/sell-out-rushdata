@@ -10,6 +10,7 @@ interface AnalisisEstacionalidadChartProps {
   fechaInicio?: string | null
   fechaFin?: string | null
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -33,22 +34,24 @@ export function AnalisisEstacionalidadChart({
   fechaInicio,
   fechaFin,
   ciudades,
+  retailerId,
 }: AnalisisEstacionalidadChartProps) {
   const { data: estacionalidad, isLoading } = useAnalisisEstacionalidadSemanal(
     fechaInicio,
     fechaFin,
-    ciudades
+    ciudades,
+    retailerId
   )
 
-  const chartData = estacionalidad?.map((item, index) => ({
-    dia: item.dia_nombre.substring(0, 3),
-    dia_completo: item.dia_nombre,
-    venta_total: item.venta_total,
-    transacciones: item.transacciones,
-    ticket_promedio: item.ticket_promedio,
-    unidades_total: item.unidades_total,
-    color: dayColors[item.dia_num],
-  })) || []
+  const chartData = (estacionalidad || []).map((item) => ({
+    dia: (item.dia_nombre || "").substring(0, 3),
+    dia_completo: item.dia_nombre || "",
+    venta_total: item.venta_total || 0,
+    transacciones: item.transacciones || 0,
+    ticket_promedio: item.ticket_promedio || 0,
+    unidades_total: item.unidades_total || 0,
+    color: dayColors[item.dia_num] || "#94A3B8",
+  }))
 
   const promedio = chartData.length > 0
     ? chartData.reduce((sum, item) => sum + item.venta_total, 0) / chartData.length

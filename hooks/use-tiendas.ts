@@ -15,6 +15,8 @@ export interface Tienda {
   skus_activos: number
   participacion: number
   variacion: number
+  ventas_anterior: number
+  unidades_anterior: number
   dias_quiebre: number
 }
 
@@ -78,11 +80,13 @@ export interface CoberturaResponse {
 }
 
 // Hook para obtener filtros disponibles
-export function useTiendasFiltros() {
+export function useTiendasFiltros(retailerId?: number | null) {
   return useQuery<TiendasFiltros>({
-    queryKey: ["tiendas-filtros"],
+    queryKey: ["tiendas-filtros", retailerId],
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_tiendas_filtros")
+      const { data, error } = await (supabase.rpc as any)("get_tiendas_filtros", {
+        p_retailer_id: retailerId || null,
+      })
       if (error) throw error
       return data as TiendasFiltros
     },
@@ -96,10 +100,11 @@ export function useTiendasKpis(
   ciudades?: string[] | null,
   clusters?: string[] | null,
   categorias?: string[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<TiendasKpis>({
-    queryKey: ["tiendas-kpis", fechaInicio, fechaFin, ciudades, clusters, categorias, productoIds],
+    queryKey: ["tiendas-kpis", fechaInicio, fechaFin, ciudades, clusters, categorias, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_tiendas_kpis", {
         p_fecha_inicio: fechaInicio || null,
@@ -108,6 +113,7 @@ export function useTiendasKpis(
         p_clusters: clusters?.length ? clusters : null,
         p_categorias: categorias?.length ? categorias : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as TiendasKpis
@@ -127,10 +133,11 @@ export function useTiendasTabla(
   limit: number = 50,
   offset: number = 0,
   orderBy: string = "ventas",
-  orderDir: string = "desc"
+  orderDir: string = "desc",
+  retailerId?: number | null
 ) {
   return useQuery<TiendasTablaResponse>({
-    queryKey: ["tiendas-tabla", fechaInicio, fechaFin, ciudades, clusters, categorias, productoIds, busqueda, limit, offset, orderBy, orderDir],
+    queryKey: ["tiendas-tabla", fechaInicio, fechaFin, ciudades, clusters, categorias, productoIds, busqueda, limit, offset, orderBy, orderDir, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_tiendas_tabla", {
         p_fecha_inicio: fechaInicio || null,
@@ -144,6 +151,7 @@ export function useTiendasTabla(
         p_offset: offset,
         p_order_by: orderBy,
         p_order_dir: orderDir,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as TiendasTablaResponse
@@ -158,10 +166,11 @@ export function useTiendasPorCiudad(
   ciudades?: string[] | null,
   clusters?: string[] | null,
   categorias?: string[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<CiudadVentas[]>({
-    queryKey: ["tiendas-por-ciudad", fechaInicio, fechaFin, ciudades, clusters, categorias, productoIds],
+    queryKey: ["tiendas-por-ciudad", fechaInicio, fechaFin, ciudades, clusters, categorias, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_tiendas_por_ciudad", {
         p_fecha_inicio: fechaInicio || null,
@@ -170,6 +179,7 @@ export function useTiendasPorCiudad(
         p_clusters: clusters?.length ? clusters : null,
         p_categorias: categorias?.length ? categorias : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as CiudadVentas[]
@@ -186,10 +196,11 @@ export function useTiendasRanking(
   categorias?: string[] | null,
   productoIds?: number[] | null,
   tipo: "top" | "bottom" = "top",
-  limit: number = 10
+  limit: number = 10,
+  retailerId?: number | null
 ) {
   return useQuery<TiendaRanking[]>({
-    queryKey: ["tiendas-ranking", fechaInicio, fechaFin, ciudades, clusters, categorias, productoIds, tipo, limit],
+    queryKey: ["tiendas-ranking", fechaInicio, fechaFin, ciudades, clusters, categorias, productoIds, tipo, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_tiendas_ranking", {
         p_fecha_inicio: fechaInicio || null,
@@ -200,6 +211,7 @@ export function useTiendasRanking(
         p_producto_ids: productoIds?.length ? productoIds : null,
         p_tipo: tipo,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as TiendaRanking[]
@@ -213,10 +225,11 @@ export function useTiendasCobertura(
   fechaFin?: string | null,
   ciudades?: string[] | null,
   clusters?: string[] | null,
-  categorias?: string[] | null
+  categorias?: string[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<CoberturaResponse>({
-    queryKey: ["tiendas-cobertura", fechaInicio, fechaFin, ciudades, clusters, categorias],
+    queryKey: ["tiendas-cobertura", fechaInicio, fechaFin, ciudades, clusters, categorias, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_tiendas_cobertura_skus", {
         p_fecha_inicio: fechaInicio || null,
@@ -224,6 +237,7 @@ export function useTiendasCobertura(
         p_ciudades: ciudades?.length ? ciudades : null,
         p_clusters: clusters?.length ? clusters : null,
         p_categorias: categorias?.length ? categorias : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as CoberturaResponse

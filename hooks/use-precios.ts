@@ -113,11 +113,13 @@ export interface PrecioPorCiudad {
 }
 
 // Hook para obtener filtros
-export function usePreciosFiltros() {
+export function usePreciosFiltros(retailerId?: number | null) {
   return useQuery<PreciosFiltros>({
-    queryKey: ["precios-filtros"],
+    queryKey: ["precios-filtros", retailerId],
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_precios_filtros")
+      const { data, error } = await (supabase.rpc as any)("get_precios_filtros", {
+        p_retailer_id: retailerId || null,
+      })
       if (error) throw error
       return data as PreciosFiltros
     },
@@ -129,16 +131,18 @@ export function usePreciosKpis(
   fechaInicio?: string | null,
   fechaFin?: string | null,
   ciudades?: string[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<PreciosKpis>({
-    queryKey: ["precios-kpis", fechaInicio, fechaFin, ciudades, productoIds],
+    queryKey: ["precios-kpis", fechaInicio, fechaFin, ciudades, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_precios_kpis", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as PreciosKpis
@@ -151,16 +155,18 @@ export function usePreciosPorProducto(
   fechaInicio?: string | null,
   fechaFin?: string | null,
   ciudades?: string[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<PrecioPorProducto[]>({
-    queryKey: ["precios-por-producto", fechaInicio, fechaFin, ciudades, productoIds],
+    queryKey: ["precios-por-producto", fechaInicio, fechaFin, ciudades, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_precios_por_producto", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as PrecioPorProducto[]
@@ -179,10 +185,11 @@ export function usePreciosDetalle(
   limit: number = 50,
   offset: number = 0,
   orderBy: string = "coef_variacion",
-  orderDir: string = "desc"
+  orderDir: string = "desc",
+  retailerId?: number | null
 ) {
   return useQuery<PrecioDetalleResponse>({
-    queryKey: ["precios-detalle", fechaInicio, fechaFin, ciudades, productoIds, tiendaIds, busqueda, limit, offset, orderBy, orderDir],
+    queryKey: ["precios-detalle", fechaInicio, fechaFin, ciudades, productoIds, tiendaIds, busqueda, limit, offset, orderBy, orderDir, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_precios_detalle", {
         p_fecha_inicio: fechaInicio || null,
@@ -195,6 +202,7 @@ export function usePreciosDetalle(
         p_offset: offset,
         p_order_by: orderBy,
         p_order_dir: orderDir,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as PrecioDetalleResponse
@@ -206,15 +214,17 @@ export function usePreciosDetalle(
 export function usePreciosDispersion(
   fechaInicio?: string | null,
   fechaFin?: string | null,
-  ciudades?: string[] | null
+  ciudades?: string[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<PrecioDispersion[]>({
-    queryKey: ["precios-dispersion", fechaInicio, fechaFin, ciudades],
+    queryKey: ["precios-dispersion", fechaInicio, fechaFin, ciudades, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_precios_dispersion", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as PrecioDispersion[]
@@ -227,16 +237,18 @@ export function usePreciosEvolucion(
   fechaInicio?: string | null,
   fechaFin?: string | null,
   productoId?: number | null,
-  ciudades?: string[] | null
+  ciudades?: string[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<PrecioEvolucion[]>({
-    queryKey: ["precios-evolucion", fechaInicio, fechaFin, productoId, ciudades],
+    queryKey: ["precios-evolucion", fechaInicio, fechaFin, productoId, ciudades, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_precios_evolucion", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_producto_id: productoId || null,
         p_ciudades: ciudades?.length ? ciudades : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as PrecioEvolucion[]
@@ -248,15 +260,17 @@ export function usePreciosEvolucion(
 export function usePreciosAlertas(
   fechaInicio?: string | null,
   fechaFin?: string | null,
-  limit: number = 10
+  limit: number = 10,
+  retailerId?: number | null
 ) {
   return useQuery<PrecioAlerta[]>({
-    queryKey: ["precios-alertas", fechaInicio, fechaFin, limit],
+    queryKey: ["precios-alertas", fechaInicio, fechaFin, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_precios_alertas", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as PrecioAlerta[]
@@ -268,15 +282,17 @@ export function usePreciosAlertas(
 export function usePreciosPorCiudad(
   fechaInicio?: string | null,
   fechaFin?: string | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<PrecioPorCiudad[]>({
-    queryKey: ["precios-por-ciudad", fechaInicio, fechaFin, productoIds],
+    queryKey: ["precios-por-ciudad", fechaInicio, fechaFin, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_precios_por_ciudad", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as PrecioPorCiudad[]

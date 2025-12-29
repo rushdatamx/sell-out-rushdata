@@ -15,10 +15,11 @@ const chartConfig = {
 
 interface TopTiendasChartProps {
   dias?: number
+  retailerId?: number | null
 }
 
-export function TopTiendasChart({ dias = 30 }: TopTiendasChartProps) {
-  const { data: tiendas, isLoading } = useTopTiendas(dias)
+export function TopTiendasChart({ dias = 30, retailerId }: TopTiendasChartProps) {
+  const { data: tiendas, isLoading } = useTopTiendas(dias, retailerId)
 
   if (isLoading) {
     return (

@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 interface AnalisisTiendasYoYChartProps {
   anio: number
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -21,31 +22,34 @@ const chartConfig = {
 export function AnalisisTiendasYoYChart({
   anio,
   ciudades,
+  retailerId,
 }: AnalisisTiendasYoYChartProps) {
   const { data: creciendo, isLoading: isLoadingCrec } = useAnalisisTiendasYoY(
     anio,
     ciudades,
     "crecimiento",
-    8
+    8,
+    retailerId
   )
   const { data: cayendo, isLoading: isLoadingCay } = useAnalisisTiendasYoY(
     anio,
     ciudades,
     "caida",
-    8
+    8,
+    retailerId
   )
 
   const isLoading = isLoadingCrec || isLoadingCay
 
   const formatData = (data: typeof creciendo) =>
-    data?.map((item) => ({
-      nombre: item.tienda.length > 22 ? item.tienda.substring(0, 22) + "..." : item.tienda,
-      nombreCompleto: item.tienda,
-      ciudad: item.ciudad,
-      cambio_pct: item.cambio_pct,
-      venta_actual: item.venta_actual,
-      venta_anterior: item.venta_anterior,
-    })) || []
+    (data || []).map((item) => ({
+      nombre: (item.tienda?.length || 0) > 22 ? item.tienda.substring(0, 22) + "..." : item.tienda || "",
+      nombreCompleto: item.tienda || "",
+      ciudad: item.ciudad || "",
+      cambio_pct: item.cambio_pct || 0,
+      venta_actual: item.venta_actual || 0,
+      venta_anterior: item.venta_anterior || 0,
+    }))
 
   const creciendoData = formatData(creciendo)
   const cayendoData = formatData(cayendo)

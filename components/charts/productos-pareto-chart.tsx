@@ -11,6 +11,7 @@ interface ProductosParetoChartProps {
   categorias?: string[] | null
   tiendaIds?: number[] | null
   productoIds?: number[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -24,8 +25,8 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ProductosParetoChart({ fechaInicio, fechaFin, categorias, tiendaIds, productoIds }: ProductosParetoChartProps) {
-  const { data: pareto, isLoading } = useProductosPareto(fechaInicio, fechaFin, categorias, tiendaIds, productoIds)
+export function ProductosParetoChart({ fechaInicio, fechaFin, categorias, tiendaIds, productoIds, retailerId }: ProductosParetoChartProps) {
+  const { data: pareto, isLoading } = useProductosPareto(fechaInicio, fechaFin, categorias, tiendaIds, productoIds, retailerId)
 
   if (isLoading) {
     return (
@@ -42,13 +43,13 @@ export function ProductosParetoChart({ fechaInicio, fechaFin, categorias, tienda
   }
 
   // Tomar los primeros 15 productos para visualización
-  const chartData = pareto?.data.slice(0, 15).map((item, index) => ({
-    nombre: item.nombre.length > 12 ? item.nombre.substring(0, 12) + "..." : item.nombre,
-    nombreCompleto: item.nombre,
-    ventas: item.ventas,
-    porcentaje: item.porcentaje,
-    acumulado: item.acumulado,
-  })) || []
+  const chartData = (pareto?.data || []).slice(0, 15).map((item) => ({
+    nombre: item.nombre?.length > 12 ? item.nombre.substring(0, 12) + "..." : item.nombre || "",
+    nombreCompleto: item.nombre || "",
+    ventas: item.ventas || 0,
+    porcentaje: item.porcentaje || 0,
+    acumulado: item.acumulado || 0,
+  }))
 
   return (
     <Card className="rounded-2xl hover-lift">

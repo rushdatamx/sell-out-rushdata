@@ -8,6 +8,7 @@ import { Calendar } from "lucide-react"
 
 interface EstacionalidadSemanalWidgetProps {
   dias?: number
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -29,6 +30,7 @@ const dayColors = [
 
 export function EstacionalidadSemanalWidget({
   dias = 90,
+  retailerId,
 }: EstacionalidadSemanalWidgetProps) {
   // Calcular fechas basadas en días
   const fechaFin = new Date().toISOString().split("T")[0]
@@ -37,7 +39,8 @@ export function EstacionalidadSemanalWidget({
   const { data: estacionalidad, isLoading } = useAnalisisEstacionalidadSemanal(
     fechaInicio,
     fechaFin,
-    null
+    null,
+    retailerId
   )
 
   const chartData = estacionalidad?.map((item) => ({

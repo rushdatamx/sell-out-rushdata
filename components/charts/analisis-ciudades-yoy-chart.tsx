@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 interface AnalisisCiudadesYoYChartProps {
   anio: number
   productoIds?: number[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -24,17 +25,18 @@ const cityColors = ["#0066FF", "#8B5CF6", "#06B6D4", "#10B981", "#F59E0B", "#EF4
 export function AnalisisCiudadesYoYChart({
   anio,
   productoIds,
+  retailerId,
 }: AnalisisCiudadesYoYChartProps) {
-  const { data: ciudades, isLoading } = useAnalisisCiudadesYoY(anio, productoIds)
+  const { data: ciudades, isLoading } = useAnalisisCiudadesYoY(anio, productoIds, retailerId)
 
-  const chartData = ciudades?.map((item, index) => ({
-    ciudad: item.ciudad,
-    tiendas: item.tiendas,
-    venta_actual: item.venta_actual,
-    venta_anterior: item.venta_anterior,
-    cambio_pct: item.cambio_pct,
+  const chartData = (ciudades || []).map((item, index) => ({
+    ciudad: item.ciudad || "",
+    tiendas: item.tiendas || 0,
+    venta_actual: item.venta_actual || 0,
+    venta_anterior: item.venta_anterior || 0,
+    cambio_pct: item.cambio_pct || 0,
     color: cityColors[index % cityColors.length],
-  })) || []
+  }))
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`

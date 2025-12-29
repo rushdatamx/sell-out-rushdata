@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge"
 interface InventarioAlertasCardProps {
   fechaInicio?: string | null
   fechaFin?: string | null
+  retailerId?: number | null
 }
 
-export function InventarioAlertasCard({ fechaInicio, fechaFin }: InventarioAlertasCardProps) {
-  const { data: alertas, isLoading } = useInventarioAlertas(fechaInicio, fechaFin, 8)
+export function InventarioAlertasCard({ fechaInicio, fechaFin, retailerId }: InventarioAlertasCardProps) {
+  const { data: alertas, isLoading } = useInventarioAlertas(fechaInicio, fechaFin, 8, retailerId)
 
   const getSeverityIcon = (severidad: string) => {
     switch (severidad) {

@@ -11,6 +11,7 @@ interface InventarioEvolucionChartProps {
   fechaFin?: string | null
   productoId?: number | null
   tiendaId?: number | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -29,12 +30,14 @@ export function InventarioEvolucionChart({
   fechaFin,
   productoId,
   tiendaId,
+  retailerId,
 }: InventarioEvolucionChartProps) {
   const { data: evolucion, isLoading } = useInventarioEvolucion(
     fechaInicio,
     fechaFin,
     productoId,
-    tiendaId
+    tiendaId,
+    retailerId
   )
 
   const chartData = evolucion?.map((item) => ({

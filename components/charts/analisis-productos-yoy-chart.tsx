@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 interface AnalisisProductosYoYChartProps {
   anio: number
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -21,30 +22,33 @@ const chartConfig = {
 export function AnalisisProductosYoYChart({
   anio,
   ciudades,
+  retailerId,
 }: AnalisisProductosYoYChartProps) {
   const { data: creciendo, isLoading: isLoadingCrec } = useAnalisisProductosYoY(
     anio,
     ciudades,
     "crecimiento",
-    8
+    8,
+    retailerId
   )
   const { data: cayendo, isLoading: isLoadingCay } = useAnalisisProductosYoY(
     anio,
     ciudades,
     "caida",
-    8
+    8,
+    retailerId
   )
 
   const isLoading = isLoadingCrec || isLoadingCay
 
   const formatData = (data: typeof creciendo) =>
-    data?.map((item) => ({
-      nombre: item.producto.length > 20 ? item.producto.substring(0, 20) + "..." : item.producto,
-      nombreCompleto: item.producto,
-      cambio_pct: item.cambio_pct,
-      venta_actual: item.venta_actual,
-      venta_anterior: item.venta_anterior,
-    })) || []
+    (data || []).map((item) => ({
+      nombre: (item.producto?.length || 0) > 20 ? item.producto.substring(0, 20) + "..." : item.producto || "",
+      nombreCompleto: item.producto || "",
+      cambio_pct: item.cambio_pct || 0,
+      venta_actual: item.venta_actual || 0,
+      venta_anterior: item.venta_anterior || 0,
+    }))
 
   const creciendoData = formatData(creciendo)
   const cayendoData = formatData(cayendo)

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface ReabastecimientoTendenciaChartProps {
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -19,8 +20,9 @@ const chartConfig = {
 
 export function ReabastecimientoTendenciaChart({
   ciudades,
+  retailerId,
 }: ReabastecimientoTendenciaChartProps) {
-  const { data: tendencia, isLoading } = useReabastecimientoTendencia(ciudades, 8)
+  const { data: tendencia, isLoading } = useReabastecimientoTendencia(ciudades, 8, retailerId)
 
   const creciendoData = tendencia?.creciendo?.map((item) => ({
     nombre: item.producto.length > 20 ? item.producto.substring(0, 20) + "..." : item.producto,

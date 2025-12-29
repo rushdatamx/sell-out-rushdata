@@ -12,11 +12,13 @@ interface VentaMensual {
   unidades: number
 }
 
-export function useVentasMensualesYoY() {
+export function useVentasMensualesYoY(retailerId?: number | null) {
   return useQuery({
-    queryKey: ["ventas-mensuales-yoy"],
+    queryKey: ["ventas-mensuales-yoy", retailerId],
     queryFn: async (): Promise<VentaMensual[]> => {
-      const { data, error } = await (supabase.rpc as any)("get_ventas_mensuales_yoy")
+      const { data, error } = await (supabase.rpc as any)("get_ventas_mensuales_yoy", {
+        p_retailer_id: retailerId || null,
+      })
 
       if (error) {
         console.error("Error fetching ventas mensuales:", error)
@@ -44,12 +46,13 @@ interface TopProducto {
   ranking: number
 }
 
-export function useTopProductos(dias: number = 30) {
+export function useTopProductos(dias: number = 30, retailerId?: number | null) {
   return useQuery({
-    queryKey: ["top-productos", dias],
+    queryKey: ["top-productos", dias, retailerId],
     queryFn: async (): Promise<TopProducto[]> => {
       const { data, error } = await (supabase.rpc as any)("get_top_productos", {
         dias_periodo: dias,
+        p_retailer_id: retailerId || null,
       })
 
       if (error) {
@@ -79,12 +82,13 @@ interface TopTienda {
   ranking: number
 }
 
-export function useTopTiendas(dias: number = 30) {
+export function useTopTiendas(dias: number = 30, retailerId?: number | null) {
   return useQuery({
-    queryKey: ["top-tiendas", dias],
+    queryKey: ["top-tiendas", dias, retailerId],
     queryFn: async (): Promise<TopTienda[]> => {
       const { data, error } = await (supabase.rpc as any)("get_top_tiendas", {
         dias_periodo: dias,
+        p_retailer_id: retailerId || null,
       })
 
       if (error) {
@@ -110,12 +114,13 @@ interface MixCategoria {
   porcentaje: number
 }
 
-export function useMixCategorias(dias: number = 30) {
+export function useMixCategorias(dias: number = 30, retailerId?: number | null) {
   return useQuery({
-    queryKey: ["mix-categorias", dias],
+    queryKey: ["mix-categorias", dias, retailerId],
     queryFn: async (): Promise<MixCategoria[]> => {
       const { data, error } = await (supabase.rpc as any)("get_mix_categorias", {
         dias_periodo: dias,
+        p_retailer_id: retailerId || null,
       })
 
       if (error) {

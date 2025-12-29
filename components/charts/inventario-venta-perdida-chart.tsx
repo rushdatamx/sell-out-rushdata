@@ -10,6 +10,7 @@ interface InventarioVentaPerdidaChartProps {
   fechaInicio?: string | null
   fechaFin?: string | null
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -23,12 +24,14 @@ export function InventarioVentaPerdidaChart({
   fechaInicio,
   fechaFin,
   ciudades,
+  retailerId,
 }: InventarioVentaPerdidaChartProps) {
   const { data: productos, isLoading } = useInventarioTopVentaPerdida(
     fechaInicio,
     fechaFin,
     ciudades,
-    10
+    10,
+    retailerId
   )
 
   const formatCurrency = (value: number) => {

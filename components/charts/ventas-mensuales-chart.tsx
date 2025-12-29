@@ -20,8 +20,12 @@ const chartConfig = {
 
 const mesesCortos = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
-export function VentasMensualesChart() {
-  const { data: ventasMensuales, isLoading } = useVentasMensualesYoY()
+interface VentasMensualesChartProps {
+  retailerId?: number | null
+}
+
+export function VentasMensualesChart({ retailerId }: VentasMensualesChartProps = {}) {
+  const { data: ventasMensuales, isLoading } = useVentasMensualesYoY(retailerId)
 
   const chartData = useMemo(() => {
     if (!ventasMensuales || ventasMensuales.length === 0) return []

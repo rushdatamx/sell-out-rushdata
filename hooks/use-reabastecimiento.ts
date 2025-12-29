@@ -96,11 +96,13 @@ export interface AlertaClaseAItem {
 }
 
 // Hook para obtener filtros disponibles
-export function useReabastecimientoFiltros() {
+export function useReabastecimientoFiltros(retailerId?: number | null) {
   return useQuery<ReabastecimientoFiltros>({
-    queryKey: ["reabastecimiento-filtros"],
+    queryKey: ["reabastecimiento-filtros", retailerId],
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_reabastecimiento_filtros")
+      const { data, error } = await (supabase.rpc as any)("get_reabastecimiento_filtros", {
+        p_retailer_id: retailerId || null,
+      })
       if (error) throw error
       return data as ReabastecimientoFiltros
     },
@@ -112,16 +114,18 @@ export function useReabastecimientoKpis(
   fechaInicio?: string | null,
   fechaFin?: string | null,
   ciudades?: string[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<ReabastecimientoKpis>({
-    queryKey: ["reabastecimiento-kpis", fechaInicio, fechaFin, ciudades, productoIds],
+    queryKey: ["reabastecimiento-kpis", fechaInicio, fechaFin, ciudades, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_reabastecimiento_kpis", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as ReabastecimientoKpis
@@ -141,10 +145,11 @@ export function useReabastecimientoTabla(
   limit: number = 50,
   offset: number = 0,
   orderBy: string = "prioridad_orden",
-  orderDir: string = "asc"
+  orderDir: string = "asc",
+  retailerId?: number | null
 ) {
   return useQuery<ReabastecimientoTablaResponse>({
-    queryKey: ["reabastecimiento-tabla", fechaInicio, fechaFin, ciudades, productoIds, prioridad, clasificacion, busqueda, limit, offset, orderBy, orderDir],
+    queryKey: ["reabastecimiento-tabla", fechaInicio, fechaFin, ciudades, productoIds, prioridad, clasificacion, busqueda, limit, offset, orderBy, orderDir, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_reabastecimiento_tabla", {
         p_fecha_inicio: fechaInicio || null,
@@ -158,6 +163,7 @@ export function useReabastecimientoTabla(
         p_offset: offset,
         p_order_by: orderBy,
         p_order_dir: orderDir,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as ReabastecimientoTablaResponse
@@ -170,16 +176,18 @@ export function useReabastecimientoFillRate(
   fechaInicio?: string | null,
   fechaFin?: string | null,
   ciudades?: string[] | null,
-  limit: number = 15
+  limit: number = 15,
+  retailerId?: number | null
 ) {
   return useQuery<FillRateItem[]>({
-    queryKey: ["reabastecimiento-fill-rate", fechaInicio, fechaFin, ciudades, limit],
+    queryKey: ["reabastecimiento-fill-rate", fechaInicio, fechaFin, ciudades, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_reabastecimiento_fill_rate", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as FillRateItem[]
@@ -191,15 +199,17 @@ export function useReabastecimientoFillRate(
 export function useReabastecimientoABC(
   fechaInicio?: string | null,
   fechaFin?: string | null,
-  ciudades?: string[] | null
+  ciudades?: string[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<ABCItem[]>({
-    queryKey: ["reabastecimiento-abc", fechaInicio, fechaFin, ciudades],
+    queryKey: ["reabastecimiento-abc", fechaInicio, fechaFin, ciudades, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_reabastecimiento_abc", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as ABCItem[]
@@ -210,14 +220,16 @@ export function useReabastecimientoABC(
 // Hook para Tendencia semanal
 export function useReabastecimientoTendencia(
   ciudades?: string[] | null,
-  limit: number = 10
+  limit: number = 10,
+  retailerId?: number | null
 ) {
   return useQuery<TendenciaData>({
-    queryKey: ["reabastecimiento-tendencia", ciudades, limit],
+    queryKey: ["reabastecimiento-tendencia", ciudades, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_reabastecimiento_tendencia", {
         p_ciudades: ciudades?.length ? ciudades : null,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as TendenciaData
@@ -229,15 +241,17 @@ export function useReabastecimientoTendencia(
 export function useReabastecimientoAlertasClaseA(
   fechaInicio?: string | null,
   fechaFin?: string | null,
-  limit: number = 10
+  limit: number = 10,
+  retailerId?: number | null
 ) {
   return useQuery<AlertaClaseAItem[]>({
-    queryKey: ["reabastecimiento-alertas-clase-a", fechaInicio, fechaFin, limit],
+    queryKey: ["reabastecimiento-alertas-clase-a", fechaInicio, fechaFin, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_reabastecimiento_alertas_clase_a", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as AlertaClaseAItem[]

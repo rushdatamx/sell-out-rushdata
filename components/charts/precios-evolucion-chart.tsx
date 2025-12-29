@@ -11,6 +11,7 @@ interface PreciosEvolucionChartProps {
   fechaFin?: string | null
   productoId?: number | null
   ciudades?: string[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -33,12 +34,14 @@ export function PreciosEvolucionChart({
   fechaFin,
   productoId,
   ciudades,
+  retailerId,
 }: PreciosEvolucionChartProps) {
   const { data: evolucion, isLoading } = usePreciosEvolucion(
     fechaInicio,
     fechaFin,
     productoId,
-    ciudades
+    ciudades,
+    retailerId
   )
 
   const chartData = evolucion?.map((item) => ({

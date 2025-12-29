@@ -90,11 +90,13 @@ export interface VentaPerdidaItem {
 }
 
 // Hook para obtener filtros disponibles
-export function useInventarioFiltros() {
+export function useInventarioFiltros(retailerId?: number | null) {
   return useQuery<InventarioFiltros>({
-    queryKey: ["inventario-filtros"],
+    queryKey: ["inventario-filtros", retailerId],
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_inventario_filtros")
+      const { data, error } = await (supabase.rpc as any)("get_inventario_filtros", {
+        p_retailer_id: retailerId || null,
+      })
       if (error) throw error
       return data as InventarioFiltros
     },
@@ -107,10 +109,11 @@ export function useInventarioKpis(
   fechaFin?: string | null,
   ciudades?: string[] | null,
   tiendaIds?: number[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<InventarioKpis>({
-    queryKey: ["inventario-kpis", fechaInicio, fechaFin, ciudades, tiendaIds, productoIds],
+    queryKey: ["inventario-kpis", fechaInicio, fechaFin, ciudades, tiendaIds, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_inventario_kpis", {
         p_fecha_inicio: fechaInicio || null,
@@ -118,6 +121,7 @@ export function useInventarioKpis(
         p_ciudades: ciudades?.length ? ciudades : null,
         p_tienda_ids: tiendaIds?.length ? tiendaIds : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as InventarioKpis
@@ -137,10 +141,11 @@ export function useInventarioTabla(
   limit: number = 50,
   offset: number = 0,
   orderBy: string = "dias_oos",
-  orderDir: string = "desc"
+  orderDir: string = "desc",
+  retailerId?: number | null
 ) {
   return useQuery<InventarioTablaResponse>({
-    queryKey: ["inventario-tabla", fechaInicio, fechaFin, ciudades, tiendaIds, productoIds, estado, busqueda, limit, offset, orderBy, orderDir],
+    queryKey: ["inventario-tabla", fechaInicio, fechaFin, ciudades, tiendaIds, productoIds, estado, busqueda, limit, offset, orderBy, orderDir, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_inventario_tabla", {
         p_fecha_inicio: fechaInicio || null,
@@ -154,6 +159,7 @@ export function useInventarioTabla(
         p_offset: offset,
         p_order_by: orderBy,
         p_order_dir: orderDir,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as InventarioTablaResponse
@@ -166,16 +172,18 @@ export function useInventarioHeatmap(
   fechaInicio?: string | null,
   fechaFin?: string | null,
   ciudades?: string[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<HeatmapData>({
-    queryKey: ["inventario-heatmap", fechaInicio, fechaFin, ciudades, productoIds],
+    queryKey: ["inventario-heatmap", fechaInicio, fechaFin, ciudades, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_inventario_heatmap", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as HeatmapData
@@ -188,16 +196,18 @@ export function useInventarioEvolucion(
   fechaInicio?: string | null,
   fechaFin?: string | null,
   productoId?: number | null,
-  tiendaId?: number | null
+  tiendaId?: number | null,
+  retailerId?: number | null
 ) {
   return useQuery<EvolucionItem[]>({
-    queryKey: ["inventario-evolucion", fechaInicio, fechaFin, productoId, tiendaId],
+    queryKey: ["inventario-evolucion", fechaInicio, fechaFin, productoId, tiendaId, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_inventario_evolucion", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_producto_id: productoId || null,
         p_tienda_id: tiendaId || null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as EvolucionItem[]
@@ -209,15 +219,17 @@ export function useInventarioEvolucion(
 export function useInventarioAlertas(
   fechaInicio?: string | null,
   fechaFin?: string | null,
-  limit: number = 10
+  limit: number = 10,
+  retailerId?: number | null
 ) {
   return useQuery<AlertaItem[]>({
-    queryKey: ["inventario-alertas", fechaInicio, fechaFin, limit],
+    queryKey: ["inventario-alertas", fechaInicio, fechaFin, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_inventario_alertas", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as AlertaItem[]
@@ -230,16 +242,18 @@ export function useInventarioTopVentaPerdida(
   fechaInicio?: string | null,
   fechaFin?: string | null,
   ciudades?: string[] | null,
-  limit: number = 10
+  limit: number = 10,
+  retailerId?: number | null
 ) {
   return useQuery<VentaPerdidaItem[]>({
-    queryKey: ["inventario-top-venta-perdida", fechaInicio, fechaFin, ciudades, limit],
+    queryKey: ["inventario-top-venta-perdida", fechaInicio, fechaFin, ciudades, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_inventario_top_venta_perdida", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as VentaPerdidaItem[]

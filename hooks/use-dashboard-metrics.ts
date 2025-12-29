@@ -17,12 +17,13 @@ interface DashboardMetrics {
   fechaInicio: string
 }
 
-export function useDashboardMetrics(dias: number = 30) {
+export function useDashboardMetrics(dias: number = 30, retailerId?: number | null) {
   return useQuery({
-    queryKey: ["dashboard-metrics", dias],
+    queryKey: ["dashboard-metrics", dias, retailerId],
     queryFn: async (): Promise<DashboardMetrics> => {
       const { data, error } = await (supabase.rpc as any)("get_dashboard_metrics", {
         dias_periodo: dias,
+        p_retailer_id: retailerId || null,
       })
 
       if (error) {
@@ -52,8 +53,8 @@ export function useDashboardMetrics(dias: number = 30) {
         ventasPorDia,
         cambioVentas: Number(data.cambioVentas) || 0,
         cambioUnidades: Number(data.cambioUnidades) || 0,
-        cambioQuiebres: 0,
-        cambioSkus: 0,
+        cambioQuiebres: Number(data.cambioQuiebres) || 0,
+        cambioSkus: Number(data.cambioSkus) || 0,
         ultimaFecha: data.ultimaFecha,
         fechaInicio: data.fechaInicio,
       }

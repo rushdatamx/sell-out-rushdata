@@ -65,15 +65,17 @@ export interface CiudadYoY {
 export function useAnalisisKpisYoY(
   anio?: number | null,
   ciudades?: string[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<AnalisisKpisYoY>({
-    queryKey: ["analisis-kpis-yoy", anio, ciudades, productoIds],
+    queryKey: ["analisis-kpis-yoy", anio, ciudades, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_analisis_kpis_yoy", {
         p_anio: anio || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return data as AnalisisKpisYoY
@@ -85,15 +87,17 @@ export function useAnalisisKpisYoY(
 export function useAnalisisVentasMensualesYoY(
   anio?: number | null,
   ciudades?: string[] | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<VentaMensualYoY[]>({
-    queryKey: ["analisis-ventas-mensuales-yoy", anio, ciudades, productoIds],
+    queryKey: ["analisis-ventas-mensuales-yoy", anio, ciudades, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_analisis_ventas_mensuales_yoy", {
         p_anio: anio || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as VentaMensualYoY[]
@@ -106,16 +110,18 @@ export function useAnalisisProductosYoY(
   anio?: number | null,
   ciudades?: string[] | null,
   tipo: "crecimiento" | "caida" = "crecimiento",
-  limit: number = 10
+  limit: number = 10,
+  retailerId?: number | null
 ) {
   return useQuery<ProductoYoY[]>({
-    queryKey: ["analisis-productos-yoy", anio, ciudades, tipo, limit],
+    queryKey: ["analisis-productos-yoy", anio, ciudades, tipo, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_analisis_productos_yoy", {
         p_anio: anio || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_tipo: tipo,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as ProductoYoY[]
@@ -128,16 +134,18 @@ export function useAnalisisTiendasYoY(
   anio?: number | null,
   ciudades?: string[] | null,
   tipo: "crecimiento" | "caida" = "crecimiento",
-  limit: number = 10
+  limit: number = 10,
+  retailerId?: number | null
 ) {
   return useQuery<TiendaYoY[]>({
-    queryKey: ["analisis-tiendas-yoy", anio, ciudades, tipo, limit],
+    queryKey: ["analisis-tiendas-yoy", anio, ciudades, tipo, limit, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_analisis_tiendas_yoy", {
         p_anio: anio || null,
         p_ciudades: ciudades?.length ? ciudades : null,
         p_tipo: tipo,
         p_limit: limit,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as TiendaYoY[]
@@ -149,15 +157,17 @@ export function useAnalisisTiendasYoY(
 export function useAnalisisEstacionalidadSemanal(
   fechaInicio?: string | null,
   fechaFin?: string | null,
-  ciudades?: string[] | null
+  ciudades?: string[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<EstacionalidadSemanal[]>({
-    queryKey: ["analisis-estacionalidad-semanal", fechaInicio, fechaFin, ciudades],
+    queryKey: ["analisis-estacionalidad-semanal", fechaInicio, fechaFin, ciudades, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_analisis_estacionalidad_semanal", {
         p_fecha_inicio: fechaInicio || null,
         p_fecha_fin: fechaFin || null,
         p_ciudades: ciudades?.length ? ciudades : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as EstacionalidadSemanal[]
@@ -168,17 +178,55 @@ export function useAnalisisEstacionalidadSemanal(
 // Hook para ciudades YoY
 export function useAnalisisCiudadesYoY(
   anio?: number | null,
-  productoIds?: number[] | null
+  productoIds?: number[] | null,
+  retailerId?: number | null
 ) {
   return useQuery<CiudadYoY[]>({
-    queryKey: ["analisis-ciudades-yoy", anio, productoIds],
+    queryKey: ["analisis-ciudades-yoy", anio, productoIds, retailerId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_analisis_ciudades_yoy", {
         p_anio: anio || null,
         p_producto_ids: productoIds?.length ? productoIds : null,
+        p_retailer_id: retailerId || null,
       })
       if (error) throw error
       return (data || []) as CiudadYoY[]
+    },
+  })
+}
+
+// Hook para obtener ciudades disponibles para el filtro
+export function useAnalisisCiudadesDisponibles(retailerId?: number | null) {
+  return useQuery<string[]>({
+    queryKey: ["analisis-ciudades-disponibles", retailerId],
+    queryFn: async () => {
+      // Obtener ciudades distintas de dim_tiendas que tengan ventas
+      const { data, error } = await supabase
+        .from("dim_tiendas")
+        .select("ciudad")
+        .eq("activo", true)
+        .not("ciudad", "is", null)
+        .order("ciudad")
+
+      if (error) throw error
+
+      // Si hay retailerId, filtrar por ese retailer
+      let query = supabase
+        .from("dim_tiendas")
+        .select("ciudad")
+        .eq("activo", true)
+        .not("ciudad", "is", null)
+
+      if (retailerId) {
+        query = query.eq("retailer_id", retailerId)
+      }
+
+      const result = await query.order("ciudad")
+      if (result.error) throw result.error
+
+      // Eliminar duplicados
+      const ciudades = [...new Set(result.data?.map((t: { ciudad: string }) => t.ciudad) || [])]
+      return ciudades
     },
   })
 }

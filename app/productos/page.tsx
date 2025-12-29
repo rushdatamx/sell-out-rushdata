@@ -269,6 +269,24 @@ export default function ProductosPage() {
       },
     },
     {
+      accessorKey: "ventas_anterior",
+      header: "Ventas Ant.",
+      cell: ({ row }) => (
+        <div className="text-right text-muted-foreground">
+          {formatCurrency(row.original.ventas_anterior || 0)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "unidades_anterior",
+      header: "Uds. Ant.",
+      cell: ({ row }) => (
+        <div className="text-right text-muted-foreground">
+          {formatNumber(row.original.unidades_anterior || 0)}
+        </div>
+      ),
+    },
+    {
       accessorKey: "num_tiendas",
       header: "# Tiendas",
       cell: ({ row }) => (
@@ -511,6 +529,12 @@ export default function ProductosPage() {
                       {tablaData.productos.reduce((sum, p) => sum + p.participacion, 0).toFixed(2)}%
                     </TableCell>
                     <TableCell className="text-right">-</TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatCurrency(tablaData.productos.reduce((sum, p) => sum + (p.ventas_anterior || 0), 0))}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatNumber(tablaData.productos.reduce((sum, p) => sum + (p.unidades_anterior || 0), 0))}
+                    </TableCell>
                     <TableCell className="text-center">-</TableCell>
                   </TableRow>
                 </TableFooter>

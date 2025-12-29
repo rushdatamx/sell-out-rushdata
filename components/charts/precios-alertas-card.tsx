@@ -8,16 +8,19 @@ import { Badge } from "@/components/ui/badge"
 interface PreciosAlertasCardProps {
   fechaInicio?: string | null
   fechaFin?: string | null
+  retailerId?: number | null
 }
 
 export function PreciosAlertasCard({
   fechaInicio,
   fechaFin,
+  retailerId,
 }: PreciosAlertasCardProps) {
   const { data: alertas, isLoading } = usePreciosAlertas(
     fechaInicio,
     fechaFin,
-    10
+    10,
+    retailerId
   )
 
   const formatCurrency = (value: number) => `$${value.toFixed(2)}`

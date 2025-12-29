@@ -21,6 +21,7 @@ interface VentasPorCiudadChartProps {
   clusters?: string[] | null
   categorias?: string[] | null
   productoIds?: number[] | null
+  retailerId?: number | null
 }
 
 export function VentasPorCiudadChart({
@@ -30,6 +31,7 @@ export function VentasPorCiudadChart({
   clusters,
   categorias,
   productoIds,
+  retailerId,
 }: VentasPorCiudadChartProps) {
   const { data, isLoading } = useTiendasPorCiudad(
     fechaInicio,
@@ -37,7 +39,8 @@ export function VentasPorCiudadChart({
     ciudades,
     clusters,
     categorias,
-    productoIds
+    productoIds,
+    retailerId
   )
 
   const chartData = data?.map((item, index) => ({

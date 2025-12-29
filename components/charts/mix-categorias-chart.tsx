@@ -11,10 +11,11 @@ const COLORS = ["#0066FF", "#06B6D4", "#8B5CF6", "#F59E0B", "#EF4444", "#10B981"
 
 interface MixCategoriasChartProps {
   dias?: number
+  retailerId?: number | null
 }
 
-export function MixCategoriasChart({ dias = 30 }: MixCategoriasChartProps) {
-  const { data: categorias, isLoading } = useMixCategorias(dias)
+export function MixCategoriasChart({ dias = 30, retailerId }: MixCategoriasChartProps) {
+  const { data: categorias, isLoading } = useMixCategorias(dias, retailerId)
 
   const totalVentas = useMemo(() => {
     return categorias?.reduce((sum, c) => sum + c.ventas, 0) || 0

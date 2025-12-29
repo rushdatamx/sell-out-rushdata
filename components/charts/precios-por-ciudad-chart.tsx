@@ -10,6 +10,7 @@ interface PreciosPorCiudadChartProps {
   fechaInicio?: string | null
   fechaFin?: string | null
   productoIds?: number[] | null
+  retailerId?: number | null
 }
 
 const chartConfig = {
@@ -25,11 +26,13 @@ export function PreciosPorCiudadChart({
   fechaInicio,
   fechaFin,
   productoIds,
+  retailerId,
 }: PreciosPorCiudadChartProps) {
   const { data: ciudades, isLoading } = usePreciosPorCiudad(
     fechaInicio,
     fechaFin,
-    productoIds
+    productoIds,
+    retailerId
   )
 
   const chartData = ciudades?.map((item, index) => ({

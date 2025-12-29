@@ -8,16 +8,19 @@ import { Badge } from "@/components/ui/badge"
 interface ReabastecimientoAlertasClaseAProps {
   fechaInicio?: string | null
   fechaFin?: string | null
+  retailerId?: number | null
 }
 
 export function ReabastecimientoAlertasClaseA({
   fechaInicio,
   fechaFin,
+  retailerId,
 }: ReabastecimientoAlertasClaseAProps) {
   const { data: alertas, isLoading } = useReabastecimientoAlertasClaseA(
     fechaInicio,
     fechaFin,
-    10
+    10,
+    retailerId
   )
 
   const formatCurrency = (value: number) => {
