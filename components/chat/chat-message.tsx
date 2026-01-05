@@ -26,13 +26,13 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
                 <User className="w-4 h-4 text-[#0066FF]" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0066FF]/10 to-[#06B6D4]/10 flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 rounded-full shadow-sm overflow-hidden">
                 <Image
-                  src="/Felix.png"
+                  src="/felixcircularblanco.png"
                   alt="Felix - RushData IA"
                   width={32}
                   height={32}
-                  className="w-8 h-8 object-contain"
+                  className="w-8 h-8 object-cover"
                 />
               </div>
             )}

@@ -1,10 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { TrendingUp, TrendingDown, Store, Package, Calendar } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import type { RetailerSummary } from "@/lib/retailers/types"
+import { getRetailerLogo } from "@/lib/retailers/config"
 
 interface RetailerCardProps {
   retailer: RetailerSummary
@@ -13,6 +15,7 @@ interface RetailerCardProps {
 
 export function RetailerCard({ retailer, className }: RetailerCardProps) {
   const isPositive = retailer.variacion_pct >= 0
+  const logoUrl = getRetailerLogo(retailer.codigo)
   const formattedVentas = new Intl.NumberFormat("es-MX", {
     style: "currency",
     currency: "MXN",
@@ -49,13 +52,23 @@ export function RetailerCard({ retailer, className }: RetailerCardProps) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden"
                 style={{ backgroundColor: `${retailer.color_hex}20` }}
               >
-                <Store
-                  className="w-5 h-5"
-                  style={{ color: retailer.color_hex }}
-                />
+                {logoUrl ? (
+                  <Image
+                    src={logoUrl}
+                    alt={`Logo ${retailer.nombre}`}
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
+                ) : (
+                  <Store
+                    className="w-5 h-5"
+                    style={{ color: retailer.color_hex }}
+                  />
+                )}
               </div>
               <div>
                 <h3 className="font-semibold text-lg">{retailer.nombre}</h3>

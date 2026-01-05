@@ -10,8 +10,10 @@ import {
   SortingState,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import Image from "next/image"
 import {
   ArrowUpDown,
   Search,
@@ -56,6 +58,7 @@ import { PreciosEvolucionChart } from "@/components/charts/precios-evolucion-cha
 import { PreciosAlertasCard } from "@/components/charts/precios-alertas-card"
 import { PreciosPorCiudadChart } from "@/components/charts/precios-por-ciudad-chart"
 import { useActiveRetailer } from "@/components/retailer/retailer-context"
+import { getRetailerLogo } from "@/lib/retailers/config"
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("es-MX", {
@@ -298,6 +301,7 @@ export default function RetailerPreciosPage() {
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
     manualSorting: true,
   })
@@ -365,10 +369,20 @@ export default function RetailerPreciosPage() {
         <div className="flex items-center gap-4">
           {retailer && (
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden"
               style={{ backgroundColor: `${retailer.color_hex}20` }}
             >
-              <DollarSign className="w-6 h-6" style={{ color: retailer.color_hex }} />
+              {getRetailerLogo(retailer.codigo) ? (
+                <Image
+                  src={getRetailerLogo(retailer.codigo)!}
+                  alt={`Logo ${retailer.nombre}`}
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
+              ) : (
+                <DollarSign className="w-6 h-6" style={{ color: retailer.color_hex }} />
+              )}
             </div>
           )}
           <div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import {
   BadgeCheck,
   Bell,
@@ -39,6 +40,34 @@ export function NavUser({
   onSignOut?: () => void
 }) {
   const { isMobile } = useSidebar()
+  const [mounted, setMounted] = useState(false)
+
+  // Evitar hydration mismatch de Radix UI
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Mostrar placeholder durante SSR para evitar hydration mismatch
+  if (!mounted) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg">
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                {user.avatar}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-semibold">{user.name}</span>
+              <span className="truncate text-xs">{user.email}</span>
+            </div>
+            <ChevronsUpDown className="ml-auto size-4" />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
 
   return (
     <SidebarMenu>

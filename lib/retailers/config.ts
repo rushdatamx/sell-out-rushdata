@@ -1,5 +1,23 @@
 import type { RetailerConfig } from './types'
 
+// Mapeo de logos por retailer (rutas en /public)
+export const RETAILER_LOGOS: Record<string, string> = {
+  heb: '/heblogo.png',
+  merco: '/mercologo.png',
+  fahorro: '/fdalogo.webp',
+  // Agregar más logos según se necesiten
+  // walmart: '/walmartlogo.png',
+  // soriana: '/sorianalogo.png',
+}
+
+/**
+ * Obtiene la URL del logo de un retailer
+ * @returns URL del logo o null si no existe
+ */
+export function getRetailerLogo(codigo: string): string | null {
+  return RETAILER_LOGOS[codigo.toLowerCase()] || null
+}
+
 // Configuración default para retailers sin config específica
 export const DEFAULT_RETAILER_CONFIG: RetailerConfig = {
   codigo: 'default',

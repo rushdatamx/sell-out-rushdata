@@ -291,13 +291,13 @@ export function FloatingAI() {
             <div className="p-4 border-b border-border/40">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0066FF]/10 to-[#06B6D4]/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full shadow-md overflow-hidden">
                     <Image
-                      src="/Felix.png"
+                      src="/felixcircularblanco.png"
                       alt="Felix"
                       width={40}
                       height={40}
-                      className="w-10 h-10 object-contain"
+                      className="w-10 h-10 object-cover"
                     />
                   </div>
                   <div>
@@ -362,10 +362,8 @@ export function FloatingAI() {
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "w-14 h-14 rounded-full",
-            "bg-white dark:bg-[#1a1a1a]",
             "shadow-lg hover:shadow-xl",
-            "border border-border/50",
-            "flex items-center justify-center",
+            "overflow-hidden",
             "transition-all duration-200",
             "hover:scale-105",
             isOpen && "scale-95"
@@ -373,11 +371,11 @@ export function FloatingAI() {
           aria-label="Abrir Felix IA"
         >
           <Image
-            src="/Felix.png"
+            src="/felixcircularblanco.png"
             alt="Felix"
-            width={36}
-            height={36}
-            className="w-9 h-9 object-contain"
+            width={56}
+            height={56}
+            className="w-14 h-14 object-cover"
           />
         </button>
       </div>

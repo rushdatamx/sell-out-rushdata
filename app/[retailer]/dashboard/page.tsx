@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Area, AreaChart } from "recharts"
 import { TrendingUp, TrendingDown, Store } from "lucide-react"
 import { useActiveRetailer } from "@/components/retailer/retailer-context"
+import { getRetailerLogo } from "@/lib/retailers/config"
 import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics"
 import { VentasMensualesChart } from "@/components/charts/ventas-mensuales-chart"
 import { TopProductosChart } from "@/components/charts/top-productos-chart"
@@ -137,6 +139,8 @@ export default function RetailerDashboardPage() {
     )
   }
 
+  const logoUrl = retailer ? getRetailerLogo(retailer.codigo) : null
+
   return (
     <div className="flex-1 space-y-6 premium-bg gradient-overlay min-h-screen">
       {/* Header with retailer info */}
@@ -144,13 +148,23 @@ export default function RetailerDashboardPage() {
         <div className="flex items-center gap-4">
           {retailer && (
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden"
               style={{ backgroundColor: `${retailer.color_hex}20` }}
             >
-              <Store
-                className="w-6 h-6"
-                style={{ color: retailer.color_hex }}
-              />
+              {logoUrl ? (
+                <Image
+                  src={logoUrl}
+                  alt={`Logo ${retailer.nombre}`}
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
+              ) : (
+                <Store
+                  className="w-6 h-6"
+                  style={{ color: retailer.color_hex }}
+                />
+              )}
             </div>
           )}
           <div>

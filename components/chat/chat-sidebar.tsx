@@ -41,13 +41,15 @@ export function ChatSidebar({
       {/* Header with logo */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Image
-            src="/Felix.png"
-            alt="Felix"
-            width={28}
-            height={28}
-            className="w-7 h-7 object-contain"
-          />
+          <div className="w-8 h-8 rounded-full shadow-sm overflow-hidden">
+            <Image
+              src="/felixcircularblanco.png"
+              alt="Felix"
+              width={32}
+              height={32}
+              className="w-8 h-8 object-cover"
+            />
+          </div>
           <span className="font-semibold text-foreground">Felix</span>
         </div>
         <button

@@ -83,13 +83,13 @@ export function ChatContainer({ showSidebar = true }: ChatContainerProps) {
               <div className="max-w-2xl w-full text-center">
                 {/* Felix Avatar */}
                 <div className="mb-6">
-                  <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-[#0066FF]/5 to-[#06B6D4]/5">
+                  <div className="inline-flex rounded-full shadow-lg overflow-hidden">
                     <Image
-                      src="/Felix.png"
+                      src="/felixcircularblanco.png"
                       alt="Felix - RushData IA"
-                      width={80}
-                      height={80}
-                      className="w-20 h-20 object-contain"
+                      width={96}
+                      height={96}
+                      className="w-24 h-24 object-cover"
                     />
                   </div>
                 </div>
@@ -115,13 +115,13 @@ export function ChatContainer({ showSidebar = true }: ChatContainerProps) {
                 <div className="py-6">
                   <div className="max-w-3xl mx-auto px-4">
                     <div className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0066FF]/10 to-[#06B6D4]/10 flex items-center justify-center overflow-hidden">
+                      <div className="w-8 h-8 rounded-full shadow-sm overflow-hidden">
                         <Image
-                          src="/Felix.png"
+                          src="/felixcircularblanco.png"
                           alt="Felix"
                           width={32}
                           height={32}
-                          className="w-8 h-8 object-contain"
+                          className="w-8 h-8 object-cover"
                         />
                       </div>
                       <div className="pt-0.5">

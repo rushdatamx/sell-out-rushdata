@@ -10,6 +10,7 @@ import {
   SortingState,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 import { ArrowUpDown, Search, TrendingUp, TrendingDown, Download, MapPin, Layers, Tag, Package, X, AlertTriangle } from "lucide-react"
@@ -305,6 +306,7 @@ export default function TiendasPage() {
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
     manualSorting: true,
   })

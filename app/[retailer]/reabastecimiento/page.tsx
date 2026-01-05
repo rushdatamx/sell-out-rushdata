@@ -10,8 +10,10 @@ import {
   SortingState,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import Image from "next/image"
 import {
   ArrowUpDown,
   Search,
@@ -67,6 +69,7 @@ import { ReabastecimientoABCChart } from "@/components/charts/reabastecimiento-a
 import { ReabastecimientoTendenciaChart } from "@/components/charts/reabastecimiento-tendencia-chart"
 import { ReabastecimientoAlertasClaseA } from "@/components/charts/reabastecimiento-alertas-clase-a"
 import { useActiveRetailer } from "@/components/retailer/retailer-context"
+import { getRetailerLogo } from "@/lib/retailers/config"
 
 // MERCO-specific components
 import { ReabastecimientoMercoKpis } from "@/components/charts/reabastecimiento-merco-kpis"
@@ -371,6 +374,7 @@ export default function RetailerReabastecimientoPage() {
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
     manualSorting: true,
   })
@@ -444,10 +448,20 @@ export default function RetailerReabastecimientoPage() {
           <div className="flex items-center gap-4">
             {retailer && (
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center"
+                className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden"
                 style={{ backgroundColor: `${retailer.color_hex}20` }}
               >
-                <ShoppingCart className="w-6 h-6" style={{ color: retailer.color_hex }} />
+                {getRetailerLogo(retailer.codigo) ? (
+                  <Image
+                    src={getRetailerLogo(retailer.codigo)!}
+                    alt={`Logo ${retailer.nombre}`}
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
+                ) : (
+                  <ShoppingCart className="w-6 h-6" style={{ color: retailer.color_hex }} />
+                )}
               </div>
             )}
             <div>
@@ -497,10 +511,20 @@ export default function RetailerReabastecimientoPage() {
         <div className="flex items-center gap-4">
           {retailer && (
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden"
               style={{ backgroundColor: `${retailer.color_hex}20` }}
             >
-              <ShoppingCart className="w-6 h-6" style={{ color: retailer.color_hex }} />
+              {getRetailerLogo(retailer.codigo) ? (
+                <Image
+                  src={getRetailerLogo(retailer.codigo)!}
+                  alt={`Logo ${retailer.nombre}`}
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
+              ) : (
+                <ShoppingCart className="w-6 h-6" style={{ color: retailer.color_hex }} />
+              )}
             </div>
           )}
           <div>

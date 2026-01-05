@@ -10,8 +10,10 @@ import {
   SortingState,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import Image from "next/image"
 import { ArrowUpDown, Search, TrendingUp, TrendingDown, Download, Tag, Store, Package, X } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,7 +30,7 @@ import {
 } from "@/components/ui/table"
 
 import { useActiveRetailer } from "@/components/retailer/retailer-context"
-import { getRetailerConfig } from "@/lib/retailers/config"
+import { getRetailerConfig, getRetailerLogo } from "@/lib/retailers/config"
 import {
   useProductosFiltros,
   useProductosKpis,
@@ -339,6 +341,7 @@ export default function RetailerProductosPage() {
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
     manualSorting: true,
   })
@@ -380,10 +383,20 @@ export default function RetailerProductosPage() {
       <div className="sticky-header-blur flex items-center gap-4">
         {retailer && (
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center"
+            className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden"
             style={{ backgroundColor: `${retailer.color_hex}20` }}
           >
-            <Package className="w-6 h-6" style={{ color: retailer.color_hex }} />
+            {getRetailerLogo(retailer.codigo) ? (
+              <Image
+                src={getRetailerLogo(retailer.codigo)!}
+                alt={`Logo ${retailer.nombre}`}
+                width={40}
+                height={40}
+                className="object-contain"
+              />
+            ) : (
+              <Package className="w-6 h-6" style={{ color: retailer.color_hex }} />
+            )}
           </div>
         )}
         <div>
