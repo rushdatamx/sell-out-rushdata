@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   DollarSign,
   LineChart,
+  Target,
   Sparkles,
   Moon,
   Sun,
@@ -88,6 +89,12 @@ export function RetailerSidebar() {
       url: `/${retailerCode}/analisis`,
       icon: LineChart,
       enabled: config?.modulos.analisis ?? true,
+    },
+    {
+      title: "Promociones",
+      url: `/${retailerCode}/promociones`,
+      icon: Target,
+      enabled: config?.modulos.promociones ?? false,
     },
   ].filter((item) => item.enabled)
 

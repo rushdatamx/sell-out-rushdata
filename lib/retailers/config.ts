@@ -39,6 +39,7 @@ export const DEFAULT_RETAILER_CONFIG: RetailerConfig = {
     reabastecimiento: true,
     precios: true,
     analisis: true,
+    promociones: true,
   },
   dashboard: {
     kpisVisibles: ['ventas', 'unidades', 'tiendas_activas', 'skus_activos'],
@@ -70,6 +71,7 @@ export const RETAILER_CONFIGS: Record<string, Partial<RetailerConfig>> = {
       reabastecimiento: true,
       precios: true,
       analisis: true,
+      promociones: true, // HEB tiene datos diarios, ideal para análisis de promociones
     },
   },
   merco: {
@@ -94,6 +96,7 @@ export const RETAILER_CONFIGS: Record<string, Partial<RetailerConfig>> = {
       reabastecimiento: true,     // Habilitado con inventario
       precios: false,             // Sin monitoreo de precios
       analisis: true,
+      promociones: false,         // Datos mensuales no ideales para promociones
     },
     dashboard: {
       kpisVisibles: ['ventas', 'unidades', 'tiendas_activas', 'skus_activos'],
@@ -122,6 +125,7 @@ export const RETAILER_CONFIGS: Record<string, Partial<RetailerConfig>> = {
       reabastecimiento: false,  // DEPENDE DE INVENTARIO
       precios: false,           // SOLO COSTO FIJO
       analisis: true,
+      promociones: false,       // Datos mensuales no ideales para promociones
     },
     dashboard: {
       kpisVisibles: ['ventas', 'unidades', 'tiendas_activas', 'skus_activos'],

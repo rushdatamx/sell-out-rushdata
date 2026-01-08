@@ -46,6 +46,7 @@ export interface RetailerConfig {
     reabastecimiento: boolean
     precios: boolean
     analisis: boolean
+    promociones: boolean
   }
 
   // Configuración del dashboard
