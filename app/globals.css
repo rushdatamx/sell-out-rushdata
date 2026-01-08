@@ -313,9 +313,11 @@ p, span, label { letter-spacing: -0.01em; }
 
 /* Premium Numbers */
 .premium-number {
+  font-family: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, sans-serif;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
-  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 
 .tabular-nums {

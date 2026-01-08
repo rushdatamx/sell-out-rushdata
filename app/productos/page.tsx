@@ -365,7 +365,7 @@ export default function ProductosPage() {
                 </div>
               ) : (
                 <>
-                  <p className="text-4xl premium-number mt-2 gradient-text group-hover:glow-blue transition-all duration-300">
+                  <p className="text-2xl premium-number mt-2 transition-all duration-300">
                     {kpi.value}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">

@@ -230,7 +230,7 @@ export default function RetailerDashboardPage() {
                   </div>
                 ) : (
                   <>
-                    <p className="text-4xl premium-number mt-2 gradient-text group-hover:glow-blue transition-all duration-300">
+                    <p className="text-2xl premium-number mt-2 group-hover:glow-blue transition-all duration-300">
                       {kpi.value}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -297,7 +297,7 @@ export default function RetailerDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground">Crecimiento del Período</h3>
-                <p className={`text-5xl premium-number ${metrics && metrics.cambioVentas >= 0 ? 'gradient-text glow-blue' : 'gradient-text-warning'}`}>
+                <p className={`text-3xl premium-number ${metrics && metrics.cambioVentas < 0 ? 'text-red-600' : ''}`}>
                   {metrics ? formatPercent(metrics.cambioVentas) : "-"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-3">

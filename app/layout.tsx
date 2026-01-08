@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Montserrat } from "next/font/google";
+import { Inter, Montserrat, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -18,6 +18,12 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
 });
 
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-plus-jakarta",
+});
+
 export const metadata: Metadata = {
   title: "RushData - Sell-Out Intelligence",
   description: "Plataforma de analytics sell-out para retail y manufactura",
@@ -31,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}
+        className={`${inter.variable} ${montserrat.variable} ${plusJakarta.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         <ThemeProvider

@@ -447,8 +447,8 @@ export default function RetailerTiendasPage() {
               ) : (
                 <>
                   <p className={cn(
-                    "text-4xl premium-number mt-2 transition-all duration-300",
-                    kpi.alert ? "text-amber-600" : "gradient-text group-hover:glow-blue"
+                    "text-2xl premium-number mt-2 transition-all duration-300",
+                    kpi.alert && "text-amber-600"
                   )}>
                     {kpi.value}
                   </p>
@@ -701,7 +701,7 @@ export default function RetailerTiendasPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold mb-2 text-muted-foreground">Cobertura Promedio</h3>
-                <p className="text-5xl premium-number gradient-text glow-blue">
+                <p className="text-3xl premium-number">
                   {kpis && tablaData?.tiendas ?
                     `${Math.round(tablaData.tiendas.reduce((sum, t) => sum + t.skus_activos, 0) / tablaData.tiendas.length)} SKUs`
                     : "-"

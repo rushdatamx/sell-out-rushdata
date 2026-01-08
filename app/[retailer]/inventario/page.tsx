@@ -411,8 +411,8 @@ export default function RetailerInventarioPage() {
               ) : (
                 <>
                   <p className={cn(
-                    "text-4xl premium-number mt-2 transition-all duration-300",
-                    kpi.alert ? "text-red-600" : "gradient-text group-hover:glow-blue"
+                    "text-2xl premium-number mt-2 transition-all duration-300",
+                    kpi.alert && "text-red-600"
                   )}>
                     {kpi.value}
                   </p>
