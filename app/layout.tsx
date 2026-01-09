@@ -27,6 +27,9 @@ const plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "RushData - Sell-Out Intelligence",
   description: "Plataforma de analytics sell-out para retail y manufactura",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
