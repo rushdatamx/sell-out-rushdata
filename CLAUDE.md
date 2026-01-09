@@ -34,13 +34,13 @@ RushData unifica estos datos en una sola plataforma con dashboards específicos 
 
 ### IDs y Configuración Actual
 
-| Retailer | ID | Código URL | Granularidad | Inventario | Módulos |
-|----------|-----|------------|--------------|------------|---------|
-| **HEB** | `1` | `/heb/*` | Diaria | ✅ Sí | Todos (7/7) |
-| Walmart | `2` | `/walmart/*` | Diaria | ✅ Sí | Todos |
-| Soriana | `3` | `/soriana/*` | Diaria | ✅ Sí | Todos |
-| Merco | `4` | `/merco/*` | Mensual | ✅ Sí | 5/7 |
-| **FDA** | `5` | `/fahorro/*` | **Mensual** | ❌ No | 4/7 |
+| Retailer | ID | Código URL | Granularidad | Inventario | Promociones | Módulos |
+|----------|-----|------------|--------------|------------|-------------|---------|
+| **HEB** | `1` | `/heb/*` | Diaria | ✅ Sí | ✅ Sí | Todos (8/8) |
+| Walmart | `2` | `/walmart/*` | Diaria | ✅ Sí | ✅ Sí | Todos |
+| Soriana | `3` | `/soriana/*` | Diaria | ✅ Sí | ✅ Sí | Todos |
+| Merco | `4` | `/merco/*` | Mensual | ✅ Sí | ❌ No | 6/8 |
+| **FDA** | `5` | `/fahorro/*` | **Mensual** | ❌ No | ❌ No | 4/8 |
 
 ### Configuración Específica por Retailer
 
@@ -55,7 +55,8 @@ heb: {
   periodos: { granularidadMinima: 'diaria' },
   modulos: {
     dashboard: true, productos: true, tiendas: true,
-    inventario: true, reabastecimiento: true, precios: true, analisis: true
+    inventario: true, reabastecimiento: true, precios: true, analisis: true,
+    promociones: true  // Análisis de promociones (requiere datos diarios)
   }
 }
 
@@ -67,7 +68,8 @@ fahorro: {
   periodos: { granularidadMinima: 'mensual' },  // ⚠️ SOLO MENSUAL
   modulos: {
     dashboard: true, productos: true, tiendas: true, analisis: true,
-    inventario: false, reabastecimiento: false, precios: false  // ❌ DESHABILITADOS
+    inventario: false, reabastecimiento: false, precios: false,  // ❌ DESHABILITADOS
+    promociones: false  // Datos mensuales no ideales para promociones
   }
 }
 ```
@@ -113,6 +115,7 @@ app/
 │   ├── inventario/page.tsx     # Niveles de inventario (HEB only)
 │   ├── reabastecimiento/       # Sugerencias de reorden (HEB only)
 │   ├── precios/page.tsx        # Monitoreo de precios (HEB only)
+│   ├── promociones/page.tsx    # Análisis de promociones (HEB only, datos diarios)
 │   └── analisis/page.tsx       # Análisis avanzado YoY
 ├── ia/page.tsx                 # Asistente IA global
 └── login/page.tsx              # Autenticación
@@ -286,6 +289,9 @@ CREATE FUNCTION get_dashboard_metrics(
 | **Inventario** | `get_inventario_*` | `p_retailer_id` (solo HEB) |
 | **Reabastecimiento** | `get_reabastecimiento_*` | `p_retailer_id` (solo HEB) |
 | **Precios** | `get_precios_*` | `p_retailer_id` (solo HEB) |
+| **Promociones** | `get_promociones_filtros` | `p_retailer_id` (solo HEB) |
+| **Promociones** | `get_ventas_periodo_promocion` | fechas + filtros + `p_retailer_id` |
+| **Promociones** | `get_canibalizacion_promocion` | producto + fechas + `p_retailer_id` |
 | **Análisis** | `get_analisis_*_yoy` | `p_retailer_id` |
 
 ---
@@ -382,6 +388,7 @@ hooks/
 ├── use-inventario.ts         # Datos de inventario (con retailerId)
 ├── use-reabastecimiento.ts   # Hooks de reabastecimiento
 ├── use-precios.ts            # Hooks de precios
+├── use-promociones.ts        # Hooks de análisis de promociones
 ├── use-analisis.ts           # Hooks de análisis YoY
 lib/
 ├── supabase/
@@ -391,6 +398,10 @@ lib/
 ├── retailers/
 │   ├── types.ts              # Tipos para retailers
 │   └── config.ts             # Configuración por retailer
+├── promociones/              # Lógica de análisis de promociones
+│   ├── types.ts              # Tipos para promociones
+│   ├── constants.ts          # Tipos de promoción, umbrales
+│   └── calculations.ts       # Cálculos de KPIs (Uplift, ROI, etc.)
 scripts/                      # Data loading scripts (Node.js)
 ├── load-heb-ventas.js        # Carga ventas HEB
 ├── load-heb-dimensions.js    # Carga dimensiones HEB
@@ -409,6 +420,19 @@ npm run dev      # Start development server (localhost:3000)
 npm run build    # Production build (SIEMPRE ejecutar para validar)
 npm run lint     # Run ESLint
 npm run start    # Start production server
+```
+
+---
+
+## Path Aliases
+
+El proyecto usa path aliases para imports más limpios:
+
+```typescript
+// tsconfig.json: "@/*" → "./*"
+import { Button } from "@/components/ui/button"
+import { supabase } from "@/lib/supabase/client"
+import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics"
 ```
 
 ---
@@ -472,7 +496,7 @@ Cada manual tiene 3 secciones:
 
 ---
 
-## Estadísticas Actuales (Diciembre 2025)
+## Estadísticas Actuales (Enero 2026)
 
 ### HEB (retailer_id = 1)
 - Registros ventas: ~125,632
@@ -513,4 +537,5 @@ Cuando agregues una nueva feature:
 4. [ ] ¿El componente usa `useActiveRetailer()` para obtener el retailer?
 5. [ ] ¿La feature está habilitada en `config.modulos` para el retailer?
 6. [ ] ¿Funciona tanto para HEB (diario) como FDA (mensual)?
-7. [ ] ¿El build pasa sin errores? (`npm run build`)
+7. [ ] ¿Los imports usan el path alias `@/`?
+8. [ ] ¿El build pasa sin errores? (`npm run build`)

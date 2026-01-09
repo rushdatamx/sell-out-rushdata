@@ -40,6 +40,7 @@ import {
 import { ProductosParetoChart } from "@/components/charts/productos-pareto-chart"
 import { ProductosVariacionChart } from "@/components/charts/productos-variacion-chart"
 import { DateRangePickerNotion } from "@/components/ui/date-range-picker-notion"
+import { MonthRangePicker } from "@/components/ui/month-range-picker"
 import { MultiSelectFilter, FilterOption } from "@/components/ui/multi-select-filter"
 
 function formatCurrency(value: number): string {
@@ -442,13 +443,22 @@ export default function RetailerProductosPage() {
       <Card className="rounded-2xl border-dashed">
         <CardContent className="pt-4 pb-4">
           <div className="flex flex-wrap gap-2 items-center">
-            {/* Date Range Picker */}
-            <DateRangePickerNotion
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-              minDate={filtros?.fecha_min ? new Date(filtros.fecha_min) : undefined}
-              maxDate={filtros?.fecha_max ? new Date(filtros.fecha_max) : undefined}
-            />
+            {/* Date Range Picker - Condicional según granularidad */}
+            {granularidad === 'mensual' ? (
+              <MonthRangePicker
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                minDate={filtros?.fecha_min ? new Date(filtros.fecha_min) : undefined}
+                maxDate={filtros?.fecha_max ? new Date(filtros.fecha_max) : undefined}
+              />
+            ) : (
+              <DateRangePickerNotion
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                minDate={filtros?.fecha_min ? new Date(filtros.fecha_min) : undefined}
+                maxDate={filtros?.fecha_max ? new Date(filtros.fecha_max) : undefined}
+              />
+            )}
 
             {/* Categoria Multiselect */}
             <MultiSelectFilter

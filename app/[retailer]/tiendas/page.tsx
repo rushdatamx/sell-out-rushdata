@@ -37,6 +37,7 @@ import {
   Tienda,
 } from "@/hooks/use-tiendas"
 import { DateRangePickerNotion } from "@/components/ui/date-range-picker-notion"
+import { MonthRangePicker } from "@/components/ui/month-range-picker"
 import { MultiSelectFilter, FilterOption } from "@/components/ui/multi-select-filter"
 import { VentasPorCiudadChart } from "@/components/charts/ventas-por-ciudad-chart"
 import { TiendasRankingChart } from "@/components/charts/tiendas-ranking-chart"
@@ -466,13 +467,22 @@ export default function RetailerTiendasPage() {
       <Card className="rounded-2xl border-dashed">
         <CardContent className="pt-4 pb-4">
           <div className="flex flex-wrap gap-2 items-center">
-            {/* Date Range Picker */}
-            <DateRangePickerNotion
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-              minDate={filtros?.fecha_min ? new Date(filtros.fecha_min) : undefined}
-              maxDate={filtros?.fecha_max ? new Date(filtros.fecha_max) : undefined}
-            />
+            {/* Date Range Picker - Condicional según granularidad */}
+            {granularidad === 'mensual' ? (
+              <MonthRangePicker
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                minDate={filtros?.fecha_min ? new Date(filtros.fecha_min) : undefined}
+                maxDate={filtros?.fecha_max ? new Date(filtros.fecha_max) : undefined}
+              />
+            ) : (
+              <DateRangePickerNotion
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                minDate={filtros?.fecha_min ? new Date(filtros.fecha_min) : undefined}
+                maxDate={filtros?.fecha_max ? new Date(filtros.fecha_max) : undefined}
+              />
+            )}
 
             {/* Ciudad Multiselect */}
             <MultiSelectFilter
