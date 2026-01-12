@@ -75,6 +75,7 @@ export function WeeklyDigestEmail({
             title="RESUMEN SEMANAL"
             subtitle={`Semana ${weekNumber} del ${fechaFin.getFullYear()}`}
             retailerName={data.retailer.nombre}
+            retailerCodigo={data.retailer.codigo}
             periodo={`${data.periodo.fecha_inicio} al ${data.periodo.fecha_fin}`}
           />
 
@@ -316,6 +317,64 @@ export function WeeklyDigestEmail({
             </>
           )}
 
+          {/* ═══════════════ TENDENCIA 6 MESES ═══════════════ */}
+          {data.tendencia_6_meses && data.tendencia_6_meses.length > 0 && (
+            <>
+              <Section style={section}>
+                <SectionTitle>Tendencia de Ventas (6 meses)</SectionTitle>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    {/* Barras de tendencia */}
+                    <tr>
+                      {data.tendencia_6_meses.map((mes, idx) => {
+                        const maxVentas = Math.max(...data.tendencia_6_meses.map(m => m.ventas))
+                        const barHeight = maxVentas > 0 ? Math.round((mes.ventas / maxVentas) * 80) : 0
+                        const isLast = idx === data.tendencia_6_meses.length - 1
+                        return (
+                          <td key={idx} style={trendCellStyle}>
+                            <div style={{ height: '100px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                              <div
+                                style={{
+                                  width: '32px',
+                                  height: `${barHeight}px`,
+                                  backgroundColor: isLast ? '#0066FF' : '#e5e7eb',
+                                  borderRadius: '4px 4px 0 0',
+                                }}
+                              />
+                            </div>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                    {/* Valores */}
+                    <tr>
+                      {data.tendencia_6_meses.map((mes, idx) => {
+                        const isLast = idx === data.tendencia_6_meses.length - 1
+                        return (
+                          <td key={idx} style={{ ...trendValueStyle, fontWeight: isLast ? '700' : '400', color: isLast ? '#0066FF' : '#6b7280' }}>
+                            {formatCurrency(mes.ventas)}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                    {/* Meses */}
+                    <tr>
+                      {data.tendencia_6_meses.map((mes, idx) => {
+                        const isLast = idx === data.tendencia_6_meses.length - 1
+                        return (
+                          <td key={idx} style={{ ...trendLabelStyle, fontWeight: isLast ? '600' : '400' }}>
+                            {mes.mes_nombre}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
+              </Section>
+              <Hr style={divider} />
+            </>
+          )}
+
           {/* ═══════════════ CTA BUTTON ═══════════════ */}
           <Section style={ctaSection}>
             <Button href={dashboardUrl} style={ctaButton}>
@@ -451,6 +510,25 @@ const noDataStyle = {
   color: '#9ca3af',
   fontStyle: 'italic' as const,
   margin: '0',
+}
+
+const trendCellStyle = {
+  textAlign: 'center' as const,
+  padding: '0 4px',
+  verticalAlign: 'bottom' as const,
+}
+
+const trendValueStyle = {
+  textAlign: 'center' as const,
+  fontSize: '11px',
+  padding: '8px 2px 4px 2px',
+}
+
+const trendLabelStyle = {
+  textAlign: 'center' as const,
+  fontSize: '12px',
+  color: '#374151',
+  padding: '0 2px',
 }
 
 const ctaSection = {

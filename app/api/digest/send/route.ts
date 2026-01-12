@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { render } from '@react-email/components'
 import { WeeklyDigestEmail } from '@/components/emails/weekly-digest'
 import { sendDigestEmail } from '@/lib/digest'
-import type { ActiveSubscription, DigestData } from '@/lib/digest/types'
+import type { DigestData } from '@/lib/digest/types'
 
 // Configuración para ejecución manual - máximo 5 minutos
 export const maxDuration = 300
@@ -18,20 +18,36 @@ const RETAILER_IDS: Record<string, number> = {
   fda: 5,
 }
 
+// Nombres de retailers para el subject
+const RETAILER_NAMES: Record<number, string> = {
+  1: 'H-E-B',
+  2: 'Walmart',
+  3: 'Soriana',
+  4: 'Merco',
+  5: 'Farmacias del Ahorro',
+}
+
 /**
  * POST /api/digest/send
  *
- * Endpoint para enviar digest manualmente.
- * Requiere autenticación de usuario logueado.
+ * Endpoint para enviar digest manualmente a emails específicos.
  *
  * Body:
+ * - tenant_id: string (requerido) - UUID del tenant
  * - retailer: 'fda' | 'merco' | 'heb' | etc. (requerido)
- * - testEmail?: string (opcional - si se quiere probar con un email específico)
+ * - emails: string[] (requerido) - Lista de emails a los que enviar
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { retailer, testEmail } = body
+    const { tenant_id, retailer, emails } = body
+
+    if (!tenant_id) {
+      return NextResponse.json(
+        { error: 'Se requiere especificar el tenant_id' },
+        { status: 400 }
+      )
+    }
 
     if (!retailer) {
       return NextResponse.json(
@@ -48,6 +64,14 @@ export async function POST(request: Request) {
       )
     }
 
+    // Validar emails
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      return NextResponse.json(
+        { error: 'Se requiere al menos un email en el array "emails"' },
+        { status: 400 }
+      )
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -60,102 +84,66 @@ export async function POST(request: Request) {
       error?: string
     }> = []
 
-    // 1. Obtener suscripciones activas para este retailer
-    const { data: subscriptions, error: subError } = await supabase.rpc(
-      'get_active_digest_subscriptions',
-      { p_digest_type: 'weekly' }
-    )
-
-    if (subError) {
-      console.error('[Manual Digest] Error fetching subscriptions:', subError)
-      return NextResponse.json({ error: 'Error obteniendo suscripciones' }, { status: 500 })
-    }
-
-    // Filtrar por retailer
-    let filteredSubs = (subscriptions as ActiveSubscription[]).filter(
-      (sub) => sub.retailer_id === retailerId
-    )
-
-    // Si hay testEmail, filtrar solo ese
-    if (testEmail) {
-      filteredSubs = filteredSubs.filter((sub) => sub.email === testEmail)
-      if (filteredSubs.length === 0) {
-        return NextResponse.json({
-          error: `No hay suscripción para ${testEmail} en ${retailer}`,
-          hint: 'Verifica que el usuario esté suscrito al digest de este retailer'
-        }, { status: 404 })
+    // 1. Obtener datos del digest una sola vez
+    const digestType = retailerId === 1 ? 'weekly' : 'monthly'
+    const { data: digestData, error: dataError } = await supabase.rpc(
+      'get_digest_data_for_retailer',
+      {
+        p_tenant_id: tenant_id,
+        p_retailer_id: retailerId,
+        p_digest_type: digestType,
       }
+    )
+
+    if (dataError || !digestData || digestData.error) {
+      console.error('[Manual Digest] Error obteniendo datos:', dataError || digestData?.error)
+      return NextResponse.json(
+        { error: dataError?.message || digestData?.error || 'Error obteniendo datos del digest' },
+        { status: 500 }
+      )
     }
 
-    if (filteredSubs.length === 0) {
-      return NextResponse.json({
-        message: `No hay suscripciones activas para ${retailer}`,
-        sent: 0
+    const data = digestData as DigestData
+    const retailerName = RETAILER_NAMES[retailerId] || retailer.toUpperCase()
+
+    // 2. Renderizar email una sola vez
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://retail.rushdata.com.mx'
+    const emailHtml = await render(
+      WeeklyDigestEmail({
+        data,
+        insights: '',
+        unsubscribeUrl: `${baseUrl}/api/digest/unsubscribe?id=manual`,
+        dashboardUrl: `${baseUrl}/${data.retailer.codigo}/dashboard`,
       })
-    }
+    )
 
-    console.log(`[Manual Digest] Enviando a ${filteredSubs.length} suscriptores de ${retailer}`)
+    // 3. Crear subject
+    const fechaStr = new Date().toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+    const subject = `Resumen ${retailerId === 1 ? 'semanal' : 'mensual'} ${retailerName} - ${fechaStr}`
 
-    // 2. Procesar cada suscripción
-    for (const sub of filteredSubs) {
+    console.log(`[Manual Digest] Enviando a ${emails.length} emails para ${retailerName}`)
+
+    // 4. Enviar a cada email
+    for (const email of emails) {
       try {
-        console.log(`[Manual Digest] Procesando ${sub.email} para ${sub.retailer_nombre}`)
-
-        // 2a. Obtener datos del digest (mensual para FDA/Merco)
-        const digestType = retailerId === 1 ? 'weekly' : 'monthly' // HEB semanal, otros mensual
-        const { data: digestData, error: dataError } = await supabase.rpc(
-          'get_digest_data_for_retailer',
-          {
-            p_tenant_id: sub.tenant_id,
-            p_retailer_id: sub.retailer_id,
-            p_digest_type: digestType,
-          }
-        )
-
-        if (dataError || !digestData || digestData.error) {
-          console.error(`[Manual Digest] Error obteniendo datos para ${sub.email}:`, dataError || digestData?.error)
-          results.push({
-            email: sub.email,
-            retailer: sub.retailer_nombre,
-            status: 'failed',
-            error: dataError?.message || digestData?.error || 'Sin datos',
-          })
-          continue
-        }
-
-        const data = digestData as DigestData
-
-        // 2b. Renderizar email
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://retail.rushdata.com.mx'
-        const emailHtml = await render(
-          WeeklyDigestEmail({
-            data,
-            insights: '',
-            unsubscribeUrl: `${baseUrl}/api/digest/unsubscribe?id=${sub.subscription_id}`,
-            dashboardUrl: `${baseUrl}/${sub.retailer_codigo}/dashboard`,
-          })
-        )
-
-        // 2c. Enviar email
-        const fechaStr = new Date().toLocaleDateString('es-MX', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        })
-        const subject = `Resumen ${retailerId === 1 ? 'semanal' : 'mensual'} ${sub.retailer_nombre} - ${fechaStr}`
+        console.log(`[Manual Digest] Enviando a ${email}`)
 
         const sendResult = await sendDigestEmail({
-          to: sub.email,
+          to: email,
           subject,
           html: emailHtml,
         })
 
-        // 2d. Registrar en logs
+        // Registrar en logs
         await supabase.from('digest_logs').insert({
-          subscription_id: sub.subscription_id,
-          tenant_id: sub.tenant_id,
-          retailer_id: sub.retailer_id,
-          user_id: sub.user_id,
+          subscription_id: null,
+          tenant_id: tenant_id,
+          retailer_id: retailerId,
+          user_id: null,
           digest_type: digestType,
           status: sendResult.success ? 'sent' : 'failed',
           subject,
@@ -163,29 +151,21 @@ export async function POST(request: Request) {
           ai_insights: null,
           error_message: sendResult.error || null,
           resend_message_id: sendResult.messageId || null,
-          email_to: sub.email,
+          email_to: email,
           tokens_used: 0,
         })
 
-        // 2e. Actualizar timestamp
-        if (sendResult.success) {
-          await supabase.rpc('update_digest_sent_timestamp', {
-            p_subscription_id: sub.subscription_id,
-            p_digest_type: digestType,
-          })
-        }
-
         results.push({
-          email: sub.email,
-          retailer: sub.retailer_nombre,
+          email,
+          retailer: retailerName,
           status: sendResult.success ? 'sent' : 'failed',
           error: sendResult.error,
         })
       } catch (err) {
-        console.error(`[Manual Digest] Error procesando ${sub.email}:`, err)
+        console.error(`[Manual Digest] Error enviando a ${email}:`, err)
         results.push({
-          email: sub.email,
-          retailer: sub.retailer_nombre,
+          email,
+          retailer: retailerName,
           status: 'failed',
           error: err instanceof Error ? err.message : 'Error desconocido',
         })
@@ -198,7 +178,7 @@ export async function POST(request: Request) {
     console.log(`[Manual Digest] Completado: ${sent} enviados, ${failed} fallidos`)
 
     return NextResponse.json({
-      message: `Digest de ${retailer.toUpperCase()} enviado`,
+      message: `Digest de ${retailerName} enviado`,
       sent,
       failed,
       results,
@@ -213,27 +193,45 @@ export async function POST(request: Request) {
 }
 
 /**
- * GET /api/digest/send?retailer=fda
+ * GET /api/digest/send?tenant_id=xxx&retailer=heb&emails=email1@x.com,email2@x.com
  *
  * Versión GET para poder ejecutar desde el navegador fácilmente
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
+  const tenant_id = searchParams.get('tenant_id')
   const retailer = searchParams.get('retailer')
-  const testEmail = searchParams.get('email')
+  const emailsParam = searchParams.get('emails') || searchParams.get('email')
+
+  if (!tenant_id) {
+    return NextResponse.json({
+      error: 'Se requiere especificar el tenant_id',
+      usage: '/api/digest/send?tenant_id=xxx&retailer=heb&emails=email1@x.com',
+    }, { status: 400 })
+  }
 
   if (!retailer) {
     return NextResponse.json({
       error: 'Se requiere especificar el retailer',
-      usage: '/api/digest/send?retailer=fda',
+      usage: '/api/digest/send?tenant_id=xxx&retailer=heb&emails=email1@x.com',
       opciones: Object.keys(RETAILER_IDS),
     }, { status: 400 })
   }
 
+  if (!emailsParam) {
+    return NextResponse.json({
+      error: 'Se requiere especificar al menos un email',
+      usage: '/api/digest/send?tenant_id=xxx&retailer=heb&emails=email1@x.com',
+    }, { status: 400 })
+  }
+
+  // Parsear emails (separados por coma)
+  const emails = emailsParam.split(',').map((e) => e.trim()).filter((e) => e.length > 0)
+
   // Reusar la lógica del POST
   const fakeRequest = new Request(request.url, {
     method: 'POST',
-    body: JSON.stringify({ retailer, testEmail }),
+    body: JSON.stringify({ tenant_id, retailer, emails }),
   })
 
   return POST(fakeRequest)

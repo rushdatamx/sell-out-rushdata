@@ -101,6 +101,12 @@ export interface DigestCiudad {
   unidades: number
 }
 
+export interface DigestTendenciaMes {
+  mes: string        // '2024-01'
+  mes_nombre: string // 'Ene'
+  ventas: number
+}
+
 export interface DigestData {
   retailer: DigestRetailer
   periodo: DigestPeriodo
@@ -111,6 +117,7 @@ export interface DigestData {
   productos_cayendo: DigestProductoVariacion[]
   alertas_inventario: DigestAlertaInventario[]
   resumen_ciudades: DigestCiudad[]
+  tendencia_6_meses: DigestTendenciaMes[]
   error?: string
 }
 

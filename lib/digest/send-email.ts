@@ -19,11 +19,8 @@ export interface SendEmailResult {
 
 export async function sendDigestEmail(params: SendEmailParams): Promise<SendEmailResult> {
   try {
-    // En desarrollo usa el dominio de prueba de Resend
-    // En producción, verificar dominio rushdata.mx en Resend
-    const fromEmail = process.env.NODE_ENV === 'production'
-      ? 'RushData <digest@rushdata.mx>'
-      : 'RushData <onboarding@resend.dev>'
+    // Dominio verificado en Resend: newsletter.rushdata.com.mx
+    const fromEmail = 'RushData <digest@newsletter.rushdata.com.mx>'
 
     const { data, error } = await resend.emails.send({
       from: fromEmail,
